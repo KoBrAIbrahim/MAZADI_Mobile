@@ -23,7 +23,7 @@ class MazadiApp extends StatelessWidget {
         fontFamily: 'Cairo',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const VerificationCodePage(),
+      home: const SignUpPage(),
     );
   }
 }
