@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
-import '../widgets/logo_header.dart';
+import '../widgets/backgorund/logo_header.dart';
 import 'dart:async';
 
 class StartupPage extends StatefulWidget {

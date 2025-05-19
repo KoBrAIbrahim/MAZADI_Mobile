@@ -1,4 +1,4 @@
-import 'package:application/widgets/logo_header.dart';
+import 'package:application/widgets/backgorund/logo_header.dart';
 import 'package:flutter/material.dart';
 
 class AuthScaffold extends StatelessWidget {

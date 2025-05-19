@@ -1,5 +1,5 @@
 import 'package:application/constants/app_colors.dart';
-import 'package:application/widgets/auth_background.dart';
+import 'package:application/widgets/backgorund/auth_background.dart';
 import 'package:flutter/material.dart';
 
 class ForgetPasswordPage extends StatelessWidget {

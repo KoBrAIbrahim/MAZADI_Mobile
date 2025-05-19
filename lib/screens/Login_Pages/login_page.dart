@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/auth_background.dart';
+import '../../widgets/backgorund/auth_background.dart';
 import '../../constants/app_colors.dart';
 
 class LoginPage extends StatelessWidget {

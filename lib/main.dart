@@ -1,11 +1,67 @@
-import 'package:application/screens/Forget_Password/forget_page.dart';
-import 'package:application/screens/Phone_verification_page.dart/OTP_verification_page.dart';
-import 'package:application/screens/signup_Pages/account_signup_page.dart';
-import 'package:application/screens/signup_Pages/confirm_signup_page.dart';
-import 'package:application/screens/signup_Pages/info_signup_page.dart';
-import 'package:application/screens/Login_Pages/login_page.dart';
-import 'package:application/screens/welcome_page.dart';
+import 'package:application/models/post.dart';
+import 'package:application/screens/Main_User_Pages.dart/home_page.dart';
 import 'package:flutter/material.dart';
+
+List<Post> posts = [
+  Post(
+    title: 'لابتوب',
+    category: 'إلكترونيات',
+    description: 'لابتوب بحالة ممتازة, لابتوب مودل 2023, شاشة LED',
+    startPrice: 1000.0,
+    media: [
+      'assets/images/laptop3.png',
+      'assets/images/laptop1.jfif',
+      'assets/images/laptop2.jfif',
+      'assets/images/airpod2.jfif',
+    ],
+    bidStep: 50.0,
+    status: 'active',
+    numberOfOnAuction: 1 ,
+  ),
+  Post(
+    title: 'سماعة',
+    category: 'إلكترونيات',
+    description: 'سماعة أصلية استعمال خفيف...',
+    startPrice: 80.0,
+    media: ['assets/images/airpod1.jfif', 'assets/images/airpod2.jfif'],
+    bidStep: 10.0,
+    status: 'active',
+    numberOfOnAuction: 2 ,
+  ),
+
+   Post(
+    title: 'سماعة',
+    category: 'إلكترونيات',
+    description: 'سماعة أصلية استعمال خفيف...',
+    startPrice: 80.0,
+    media: ['assets/images/airpod1.jfif', 'assets/images/airpod2.jfif'],
+    bidStep: 10.0,
+    status: 'active',
+    numberOfOnAuction: 4 ,
+  ),
+
+   Post(
+    title: 'سماعة',
+    category: 'إلكترونيات',
+    description: 'سماعة أصلية استعمال خفيف...',
+    startPrice: 80.0,
+    media: ['assets/images/airpod1.jfif', 'assets/images/airpod2.jfif'],
+    bidStep: 10.0,
+    status: 'active',
+    numberOfOnAuction: 6 ,
+  ),
+
+   Post(
+    title: 'سماعة',
+    category: 'إلكترونيات',
+    description: 'سماعة أصلية استعمال خفيف...',
+    startPrice: 80.0,
+    media: ['assets/images/airpod1.jfif', 'assets/images/airpod2.jfif'],
+    bidStep: 10.0,
+    status: 'active',
+    numberOfOnAuction: 7 ,
+  ),
+];
 
 void main() {
   runApp(const MazadiApp());
@@ -23,7 +79,7 @@ class MazadiApp extends StatelessWidget {
         fontFamily: 'Cairo',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const SignUpPage(),
+      home: HomePage(posts: posts),
     );
   }
 }
