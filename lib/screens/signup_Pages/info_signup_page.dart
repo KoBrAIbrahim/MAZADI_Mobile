@@ -1,6 +1,6 @@
 import 'package:application/widgets/customer_drop_down_item.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/auth_background.dart';
+import '../../widgets/backgorund/auth_background.dart';
 import '../../constants/app_colors.dart';
 
 class SignUpPage extends StatefulWidget {

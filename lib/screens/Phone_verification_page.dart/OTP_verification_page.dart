@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:application/constants/app_colors.dart';
-import 'package:application/widgets/auth_background.dart';
+import 'package:application/widgets/backgorund/auth_background.dart';
 import 'package:flutter/material.dart';
 
 class VerificationCodePage extends StatefulWidget {
