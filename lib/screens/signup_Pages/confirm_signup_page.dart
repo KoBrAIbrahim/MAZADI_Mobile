@@ -1,6 +1,6 @@
-import 'package:application/constants/app_colors.dart';
-import 'package:application/widgets/backgorund/auth_background.dart';
+import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
+import '../../constants/app_colors.dart';
 
 class ConfirmSignUpPage extends StatefulWidget {
   const ConfirmSignUpPage({super.key});
@@ -18,92 +18,100 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
     final width = size.width;
     final height = size.height;
 
-    return AuthScaffold(
-      showBottomBackground: true,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          top: height * 0.33,
-          left: width * 0.07,
-          right: width * 0.07,
-          bottom: 30,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'إنشاء حساب',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Container(width: width * 0.3, height: 2, color: AppColors.primary),
-            SizedBox(height: height * 0.03),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      body: BlurredBackground(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.08),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: height * 0.05),
 
-            _buildField(
-              label: 'Full Name',
-              hint: 'AAA BBB',
-              icon: Icons.person,
-            ),
-            SizedBox(height: height * 0.015),
+                        // اللوجو
+                        Center(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: width * 0.4,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
 
-            _buildField(
-              label: 'Phone',
-              hint: '+00 000-0000-000',
-              icon: Icons.phone,
-            ),
-            SizedBox(height: height * 0.015),
+                        SizedBox(height: height * 0.04),
 
-            _buildField(
-              label: 'City',
-              hint: 'رام الله',
-              icon: Icons.location_city,
-            ),
-            SizedBox(height: height * 0.015),
+                        const Text(
+                          'إنشاء حساب',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: width * 0.3,
+                          height: 2,
+                          color: AppColors.primary,
+                        ),
 
-            _buildField(
-              label: 'Gender',
-              hint: 'Female',
-              icon: Icons.person_outline,
-            ),
-            SizedBox(height: height * 0.015),
+                        SizedBox(height: height * 0.04),
 
-            _buildField(
-              label: 'Email',
-              hint: 'Example@Gmail.com',
-              icon: Icons.email,
-            ),
-            SizedBox(height: height * 0.015),
+                        _buildField(label: 'Full Name', hint: 'AAA BBB', icon: Icons.person),
+                        const SizedBox(height: 16),
+                        _buildField(label: 'Phone', hint: '+00 000-0000-000', icon: Icons.phone),
+                        const SizedBox(height: 16),
+                        _buildField(label: 'City', hint: 'رام الله', icon: Icons.location_city),
+                        const SizedBox(height: 16),
+                        _buildField(label: 'Gender', hint: 'Female', icon: Icons.person_outline),
+                        const SizedBox(height: 16),
+                        _buildField(label: 'Email', hint: 'Example@Gmail.com', icon: Icons.email),
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: 'Password',
+                          hint: '**********',
+                          icon: Icons.lock,
+                          obscure: _obscurePassword,
+                          isPassword: true,
+                        ),
 
-            _buildField(
-              label: 'Password',
-              hint: '**********',
-              obscure: _obscurePassword,
-              icon: Icons.lock,
-              isPassword: true,
-            ),
-            SizedBox(height: height * 0.04),
+                        const SizedBox(height: 30),
 
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Sign up',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                        // زر التسجيل
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // تنفيذ التسجيل
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.secondary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              'Sign up',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -149,20 +157,19 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
               focusedBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
-              suffixIcon:
-                  isPassword
-                      ? IconButton(
-                        icon: Icon(
-                          obscure ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      )
-                      : null,
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        obscure ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    )
+                  : null,
             ),
           ),
         ),

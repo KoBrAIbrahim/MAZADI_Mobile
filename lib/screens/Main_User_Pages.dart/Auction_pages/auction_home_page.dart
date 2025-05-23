@@ -1,0 +1,601 @@
+import 'dart:async';
+
+import 'package:application/models/action.dart';
+import 'package:application/models/bid.dart';
+import 'package:application/models/post.dart';
+import 'package:application/screens/Main_User_Pages.dart/dashboard.dart/dashboard_page.dart';
+import 'package:application/screens/Main_User_Pages.dart/Auction_pages/detalis_auction.dart';
+import 'package:flutter/material.dart';
+
+class AuctionHomePage extends StatefulWidget {
+  final List<Auction> auction;
+  final List<Post> posts;
+  final List<Bid> bids;
+  final List<String> categories;
+
+  const AuctionHomePage({
+    Key? key,
+    required this.auction,
+    required this.posts,
+    required this.bids,
+    required this.categories,
+  }) : super(key: key);
+
+  @override
+  State<AuctionHomePage> createState() => _AuctionHomePageState();
+}
+
+class _AuctionHomePageState extends State<AuctionHomePage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late List<Auction> auctions;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  Timer? _timer;
+  Duration _timeLeft = Duration.zero;
+  int selectedCategoryIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: widget.categories.length,
+      vsync: this,
+    );
+    _initializeAuctionTimer();
+    auctions = widget.auction;
+    _tabController.addListener(() {
+      setState(() {
+        selectedCategoryIndex = _tabController.index;
+      });
+    });
+  }
+
+  List<Auction> get filteredAuctions {
+  return auctions.where((auction) {
+    final auctionCategory = auction.category.trim().toLowerCase();
+    final selectedCategory = widget.categories[selectedCategoryIndex].trim().toLowerCase();
+    return auctionCategory == selectedCategory;
+  }).toList();
+}
+
+
+  void _initializeAuctionTimer() {
+    final now = DateTime.now();
+    final isThursdayToMonday =
+        now.weekday >= DateTime.thursday || now.weekday == DateTime.monday;
+    final nextReset =
+        isThursdayToMonday
+            ? DateTime(
+              now.year,
+              now.month,
+              now.weekday == 1 ? now.day : now.day + (8 - now.weekday),
+              18,
+            )
+            : DateTime(
+              now.year,
+              now.month,
+              now.day + (DateTime.thursday - now.weekday),
+              18,
+            );
+
+    setState(() => _timeLeft = nextReset.difference(now));
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final diff = nextReset.difference(DateTime.now());
+      if (diff.isNegative) {
+        timer.cancel();
+      } else {
+        setState(() => _timeLeft = diff);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade100,
+      appBar: AppBar(
+        title: const Text(
+          "المزادات",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: GestureDetector(
+            onTap: () {
+              _scaffoldKey.currentState?.openDrawer();
+            },
+            child: Image.asset('assets/icons/mazadi_logo.png'),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            labelColor: Colors.teal,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.teal,
+            indicatorWeight: 3,
+            tabs:
+                widget.categories
+                    .map((category) => Tab(text: category))
+                    .toList(),
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildTimerBar(),
+          Expanded(
+            child:
+                filteredAuctions.isEmpty
+                    ? const Center(
+                      child: Text(
+                        "لا توجد مزادات متاحة",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    )
+                    : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        const SizedBox(height: 12),
+                        _buildFeaturedAuction(),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "جميع المنشورات",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildAuctionGrid(),
+                      ],
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimerBar() {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final days = _timeLeft.inDays;
+    final h = twoDigits(_timeLeft.inHours % 24);
+    final m = twoDigits(_timeLeft.inMinutes % 60);
+    final s = twoDigits(_timeLeft.inSeconds % 60);
+
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.red.shade200, Colors.orange.shade200],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.timer_outlined, color: Colors.red.shade700),
+          const SizedBox(width: 8),
+          const Text(
+            "ينتهي المزاد بعد:",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildTimeBlock(days.toString(), "يوم"),
+          _buildTimeBlock(h, "ساعة"),
+          _buildTimeBlock(m, "دقيقة"),
+          _buildTimeBlock(s, "ثانية"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeBlock(String value, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.red.shade700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: Colors.black87),
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget _buildFeaturedAuction() {
+  final selectedCategory =
+      widget.categories[selectedCategoryIndex].trim().toLowerCase();
+
+  final livePost = widget.auction
+      .expand((auction) => auction.posts)
+      .firstWhere(
+        (post) =>
+            post.isLive == 'IN_PROGRASS' &&
+            post.category.trim().toLowerCase() == selectedCategory,
+        
+      );
+
+  if (livePost == null) return Container();
+
+  final auction = widget.auction.firstWhere(
+    (a) => a.posts.contains(livePost),
+    orElse: () => widget.auction.first,
+  );
+
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AuctionDetailPage(
+            auction: auction,
+            posts: [livePost],
+            bids: livePost.bids,
+          ),
+        ),
+      );
+    },
+    child: Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              livePost.media.first,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey.shade300,
+                child: const Icon(Icons.image_not_supported, size: 50),
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.red.shade700,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    "LIVE",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  auction.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.gavel, size: 14, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${auction.participantCount} مزايد",
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.remove_red_eye, size: 14, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${auction.viewCount} مشاهدة",
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text(
+                      "السعر الحالي:",
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "NIS ${livePost.currentBid.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+
+Widget _buildAuctionGrid() {
+  final filteredPosts = widget.auction
+      .expand((auction) => auction.posts)
+      .where((post) =>
+          post.category.trim().toLowerCase() ==
+          widget.categories[selectedCategoryIndex].trim().toLowerCase())
+      .toList();
+
+  return GridView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 0.75,
+    ),
+    itemCount: filteredPosts.length,
+    itemBuilder: (context, index) {
+      final  post = filteredPosts[index];
+      Color badgeColor;
+      String badgeText;
+
+      switch (post.isLive) {
+        case 'WAITING':
+          badgeColor = Colors.grey;
+          badgeText = 'قريباً';
+          break;
+        case 'COMPLETED':
+          badgeColor = Colors.green;
+          badgeText = 'تم البيع';
+          break;
+        default:
+          badgeColor = Colors.red.shade700;
+          badgeText = 'LIVE';
+      }
+
+      return GestureDetector(
+        onTap: post.isLive == 'IN_PROGRASS'
+            ? () {
+                final parentAuction = widget.auction.firstWhere(
+                  (a) => a.posts.contains(post),
+                  orElse: () => widget.auction.first,
+                );
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AuctionDetailPage(
+                      auction: parentAuction,
+                      posts: [post],
+                      bids: post.bids,
+                    ),
+                  ),
+                );
+              }
+            : null,
+        child: Opacity(
+          opacity: post.isLive == 'IN_PROGRASS' ? 1.0 : 0.5,
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    post.media.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.image_not_supported, size: 50),
+                    ),
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.6),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  right: 12,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.title ?? "بدون عنوان",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "السعر الابتدائي: NIS ${post.startPrice.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        "ترتيب في المزاد: ${post.numberOfOnAuction}",
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+}

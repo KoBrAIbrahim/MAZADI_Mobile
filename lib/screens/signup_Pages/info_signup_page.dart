@@ -1,8 +1,7 @@
-import 'package:application/widgets/customer_drop_down_item.dart';
+import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/backgorund/auth_background.dart';
 import '../../constants/app_colors.dart';
-
+ 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
@@ -16,90 +15,107 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
 
-    return AuthScaffold(
-      showBottomBackground: true,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          top: height * 0.33,
-          left: width * 0.07,
-          right: width * 0.07,
-          bottom: 30,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      body: BlurredBackground(
+        child: Stack(
           children: [
-            const Text(
-              'إنشاء حساب',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Container(width: width * 0.3, height: 2, color: AppColors.primary),
-            SizedBox(height: height * 0.03),
+            // ✅ محتوى الصفحة (قابل للتمرير)
+            Positioned.fill(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: width * 0.08),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: height * 0.05),
 
-            Row(
-              children: [
-                Expanded(child: _buildInput('First Name',icon: Icons.person,)),
-                const SizedBox(width: 10),
-                Expanded(child: _buildInput('Last Name',icon: Icons.person,)),
-              ],
-            ),
-            SizedBox(height: height * 0.03),
+                    // اللوجو
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: width * 0.4,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
 
-            _buildInput(
-              'Mobile Number',
-              hint: '+00 000-000-000',
-              icon: Icons.phone,
-            ),
-            SizedBox(height: height * 0.03),
+                    SizedBox(height: height * 0.04),
 
-            _buildDropdown('City'),
-            SizedBox(height: height * 0.03),
+                    const Text(
+                      'إنشاء حساب',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(width: width * 0.3, height: 2, color: AppColors.primary),
+                    SizedBox(height: height * 0.04),
 
-            Row(
-              children: const [
-                Icon(Icons.person_outline, size: 20, color: Colors.black),
-                SizedBox(width: 6),
-                Text('Gender', style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
+                    Row(
+                      children: [
+                        Expanded(child: _buildInput('First Name', icon: Icons.person)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildInput('Last Name', icon: Icons.person)),
+                      ],
+                    ),
 
-            SizedBox(height: height * 0.01),
-            Row(
-              children: [
-                _buildCustomCheckbox(
-                  label: 'Male',
-                  selected: selectedGender == 'Male',
-                  onTap: () {
-                    setState(() {
-                      selectedGender = 'Male';
-                    });
-                  },
+                    SizedBox(height: height * 0.03),
+                    _buildInput('Mobile Number', hint: '+00 000-000-000', icon: Icons.phone),
+                    SizedBox(height: height * 0.03),
+                    _buildDropdown('City'),
+                    SizedBox(height: height * 0.03),
+
+                    const Row(
+                      children: [
+                        Icon(Icons.person_outline, size: 20, color: Colors.black),
+                        SizedBox(width: 6),
+                        Text('Gender', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildCustomCheckbox(
+                          label: 'Male',
+                          selected: selectedGender == 'Male',
+                          onTap: () {
+                            setState(() {
+                              selectedGender = 'Male';
+                            });
+                          },
+                        ),
+                        _buildCustomCheckbox(
+                          label: 'Female',
+                          selected: selectedGender == 'Female',
+                          onTap: () {
+                            setState(() {
+                              selectedGender = 'Female';
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // مساحة كافية لتجنب تغطية الزر المثبت
+                    const SizedBox(height: 120),
+                  ],
                 ),
-                _buildCustomCheckbox(
-                  label: 'Female',
-                  selected: selectedGender == 'Female',
-                  onTap: () {
-                    setState(() {
-                      selectedGender = 'Female';
-                    });
-                  },
-                ),
-              ],
+              ),
             ),
 
-            SizedBox(height: height * 0.16),
-
-            Align(
-              alignment: Alignment.bottomRight,
+            // ✅ زر "أكمل" ثابت في أسفل يمين الشاشة
+            Positioned(
+              bottom: 20,
+              right: width * 0.08,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
                     'أكمل',
-                    style: TextStyle(fontWeight: FontWeight.bold , fontSize: 20),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ),
                   const SizedBox(width: 10),
                   Container(
@@ -123,14 +139,9 @@ class _SignUpPageState extends State<SignUpPage> {
     return TextField(
       decoration: InputDecoration(
         hintText: hint ?? label,
-        prefixIcon:
-            icon != null
-                ? Icon(
-                  icon,
-                  size: 20,
-                  color: const Color.fromARGB(255, 0, 0, 0),
-                )
-                : null,
+        prefixIcon: icon != null
+            ? Icon(icon, size: 20, color: Colors.black)
+            : null,
         hintStyle: const TextStyle(color: Colors.grey),
         enabledBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: AppColors.primary),
@@ -147,14 +158,10 @@ class _SignUpPageState extends State<SignUpPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: [
-            const Icon(
-              Icons.location_city,
-              size: 18,
-              color: Color.fromARGB(255, 0, 0, 0),
-            ),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          children: const [
+            Icon(Icons.location_city, size: 18, color: Colors.black),
+            SizedBox(width: 8),
+            Text('City', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 12),
@@ -185,10 +192,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: AppColors.primary,
-                ),
+                child: const Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
               ),
               style: const TextStyle(
                 color: Colors.black87,
@@ -199,18 +203,9 @@ class _SignUpPageState extends State<SignUpPage> {
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
               items: [
-                DropdownMenuItem(
-                  value: 'رام الله',
-                  child: _buildCityItem('رام الله', Icons.location_on),
-                ),
-                DropdownMenuItem(
-                  value: 'نابلس',
-                  child: _buildCityItem('نابلس', Icons.location_on),
-                ),
-                DropdownMenuItem(
-                  value: 'الخليل',
-                  child: _buildCityItem('الخليل', Icons.location_on),
-                ),
+                _buildCityItem('رام الله'),
+                _buildCityItem('نابلس'),
+                _buildCityItem('الخليل'),
               ],
               onChanged: (value) {
                 setState(() {
@@ -224,26 +219,22 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _buildCityItem(String cityName, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  DropdownMenuItem<String> _buildCityItem(String city) {
+    return DropdownMenuItem(
+      value: city,
       child: Row(
         children: [
           Icon(
-            icon,
+            Icons.location_on,
             size: 18,
-            color: cityName == selectedCity ? AppColors.primary : Colors.grey,
+            color: city == selectedCity ? AppColors.primary : Colors.grey,
           ),
           const SizedBox(width: 12),
           Text(
-            cityName,
+            city,
             style: TextStyle(
-              color:
-                  cityName == selectedCity ? AppColors.primary : Colors.black87,
-              fontWeight:
-                  cityName == selectedCity
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+              color: city == selectedCity ? AppColors.primary : Colors.black87,
+              fontWeight: city == selectedCity ? FontWeight.bold : FontWeight.normal,
               fontSize: 18,
             ),
           ),
@@ -269,22 +260,20 @@ class _SignUpPageState extends State<SignUpPage> {
               border: Border.all(color: AppColors.primary, width: 2),
               borderRadius: BorderRadius.circular(4),
             ),
-            child:
-                selected
-                    ? Center(
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+            child: selected
+                ? Center(
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                    )
-                    : null,
+                    ),
+                  )
+                : null,
           ),
         ),
-
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(width: 16),

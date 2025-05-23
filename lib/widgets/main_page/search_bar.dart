@@ -104,7 +104,7 @@ class SearchBarWidget extends StatelessWidget {
                   ),
                   builder:
                       (context) => FractionallySizedBox(
-                        heightFactor: 0.25, // 50% من ارتفاع الشاشة
+                        heightFactor: 0.30, // 50% من ارتفاع الشاشة
                         widthFactor: 1.0, // 100% من عرض الشاشة
                         child: const FilterPage(),
                       ),
