@@ -8,7 +8,7 @@ class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
     Key? key,
     required this.child,
-    this.showBottomBackground = true, 
+    this.showBottomBackground = true,
   }) : super(key: key);
 
   @override
@@ -25,8 +25,8 @@ class AuthScaffold extends StatelessWidget {
             left: 0,
             right: 0,
             child: Image.asset(
-              'assets/images/image.png',
-              width: width,
+              'assets/images/top_background.png',
+              width: width * 50,
               fit: BoxFit.contain,
             ),
           ),
@@ -34,7 +34,7 @@ class AuthScaffold extends StatelessWidget {
           Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: EdgeInsets.only(top: height * 0.06),
+              padding: EdgeInsets.only(top: height * 0.03),
               child: const LogoHeader(),
             ),
           ),

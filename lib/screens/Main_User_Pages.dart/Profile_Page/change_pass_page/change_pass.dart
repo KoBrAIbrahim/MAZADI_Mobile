@@ -1,0 +1,963 @@
+import 'package:flutter/material.dart';
+import 'package:application/constants/app_colors.dart';
+import 'package:application/models/user.dart';
+
+class ChangePasswordPage extends StatefulWidget {
+  final User user;
+
+  const ChangePasswordPage({super.key, required this.user});
+
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage>
+    with TickerProviderStateMixin {
+  final TextEditingController currentPasswordController = TextEditingController();
+  final TextEditingController newPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  bool isCurrentVisible = false;
+  bool isNewVisible = false;
+  bool isConfirmVisible = false;
+  bool isLoading = false;
+  double passwordStrength = 0.0;
+  String passwordStrengthText = "";
+
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutBack));
+
+    _fadeController.forward();
+    _slideController.forward();
+
+    newPasswordController.addListener(_checkPasswordStrength);
+  }
+
+  @override
+  void dispose() {
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  void _checkPasswordStrength() {
+    final password = newPasswordController.text;
+    double strength = 0.0;
+    String strengthText = "";
+
+    if (password.isEmpty) {
+      strength = 0.0;
+      strengthText = "";
+    } else if (password.length < 6) {
+      strength = 0.2;
+      strengthText = "ضعيف جداً";
+    } else if (password.length < 8) {
+      strength = 0.4;
+      strengthText = "ضعيف";
+    } else {
+      strength = 0.6;
+      strengthText = "متوسط";
+      
+      if (RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(password)) {
+        strength = 0.8;
+        strengthText = "قوي";
+      }
+      
+      if (RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])').hasMatch(password) && password.length >= 10) {
+        strength = 1.0;
+        strengthText = "قوي جداً";
+      }
+    }
+
+    setState(() {
+      passwordStrength = strength;
+      passwordStrengthText = strengthText;
+    });
+  }
+
+  Color _getStrengthColor() {
+    if (passwordStrength <= 0.4) return Colors.red;
+    if (passwordStrength <= 0.6) return Colors.orange;
+    if (passwordStrength <= 0.8) return Colors.yellow.shade700;
+    return Colors.green;
+  }
+
+  String? _validateCurrentPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'يرجى إدخال كلمة المرور الحالية';
+    }
+    return null;
+  }
+
+  String? _validateNewPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'يرجى إدخال كلمة المرور الجديدة';
+    }
+    if (value.length < 8) {
+      return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+    }
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'يرجى تأكيد كلمة المرور';
+    }
+    if (value != newPasswordController.text) {
+      return 'كلمة المرور غير متطابقة';
+    }
+    return null;
+  }
+
+  void _showAdvancedHelpDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Help Dialog",
+      barrierColor: Colors.black.withOpacity(0.6),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.elasticOut),
+          ),
+          child: FadeTransition(
+            opacity: animation,
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              contentPadding: EdgeInsets.zero,
+              content: Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                constraints: BoxConstraints(
+                  maxWidth: 400,
+                  maxHeight: MediaQuery.of(context).size.height * 0.7,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white,
+                      AppColors.primary.withOpacity(0.05),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppColors.primary, AppColors.secondary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.help_center,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "مساعدة تغيير كلمة المرور",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "دليل شامل لتحديث كلمة المرور بأمان",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHelpStep(
+                              step: "1",
+                              title: "أدخل كلمة المرور الحالية",
+                              description: "تأكد من إدخال كلمة المرور المستخدمة حالياً للدخول إلى حسابك",
+                              icon: Icons.login,
+                            ),
+                            _buildHelpStep(
+                              step: "2",
+                              title: "إنشاء كلمة مرور جديدة قوية",
+                              description: "استخدم 8 أحرف على الأقل مع مزيج من الأحرف والأرقام والرموز",
+                              icon: Icons.security,
+                            ),
+                            _buildHelpStep(
+                              step: "3",
+                              title: "مراقبة مؤشر القوة",
+                              description: "تأكد من وصول مؤشر قوة كلمة المرور إلى اللون الأخضر",
+                              icon: Icons.speed,
+                            ),
+                            _buildHelpStep(
+                              step: "4",
+                              title: "تأكيد كلمة المرور",
+                              description: "أعد كتابة كلمة المرور الجديدة للتأكد من صحتها",
+                              icon: Icons.verified,
+                            ),
+                            _buildHelpStep(
+                              step: "5",
+                              title: "حفظ التغييرات",
+                              description: "اضغط على زر حفظ التغييرات لتطبيق كلمة المرور الجديدة",
+                              icon: Icons.save,
+                              isLast: true,
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            // Security Tips
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.amber.shade200),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.lightbulb, color: Colors.amber.shade700, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "نصائح أمنية مهمة:",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber.shade700,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "• لا تشارك كلمة المرور مع أحد\n"
+                                    "• تجنب استخدام معلومات شخصية\n"
+                                    "• غيّر كلمة المرور بانتظام\n"
+                                    "• استخدم كلمة مرور مختلفة لكل حساب",
+                                    style: TextStyle(
+                                      color: Colors.amber.shade700,
+                                      fontSize: 12,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // Footer
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: AppColors.primary),
+                                ),
+                              ),
+                              child: Text(
+                                "إغلاق",
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                // Auto-focus on first field
+                                FocusScope.of(context).requestFocus(FocusNode());
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                "البدء الآن",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHelpStep({
+    required String step,
+    required String title,
+    required String description,
+    required IconData icon,
+    bool isLast = false,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isLast ? 0 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    step,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 40,
+                  color: AppColors.primary.withOpacity(0.3),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveNewPassword() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => isLoading = true);
+    
+    // Simulate API call
+    await Future.delayed(const Duration(seconds: 2));
+
+    setState(() => isLoading = false);
+    
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text("تم تحديث كلمة المرور بنجاح"),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool isVisible,
+    required VoidCallback onVisibilityToggle,
+    required String? Function(String?) validator,
+    bool showStrengthIndicator = false,
+  }) {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 600;
+    final isDesktop = screenSize.width > 1200;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w600,
+            fontSize: isTablet ? 16 : 14,
+          ),
+        ),
+        SizedBox(height: isTablet ? 12 : 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: isTablet ? 15 : 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: controller,
+            obscureText: !isVisible,
+            validator: validator,
+            style: TextStyle(fontSize: isTablet ? 18 : 16),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(
+                Icons.lock_outline,
+                color: AppColors.primary.withOpacity(0.7),
+                size: isTablet ? 28 : 24,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  isVisible ? Icons.visibility_off : Icons.visibility,
+                  color: AppColors.primary.withOpacity(0.7),
+                  size: isTablet ? 28 : 24,
+                ),
+                onPressed: onVisibilityToggle,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                borderSide: const BorderSide(color: Colors.red),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: isTablet ? 20 : 16, 
+                vertical: isTablet ? 24 : 20,
+              ),
+            ),
+          ),
+        ),
+        if (showStrengthIndicator && newPasswordController.text.isNotEmpty) ...[
+          SizedBox(height: isTablet ? 12 : 8),
+          Row(
+            children: [
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: passwordStrength,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(_getStrengthColor()),
+                  minHeight: isTablet ? 6 : 4,
+                ),
+              ),
+              SizedBox(width: isTablet ? 16 : 12),
+              Text(
+                passwordStrengthText,
+                style: TextStyle(
+                  color: _getStrengthColor(),
+                  fontWeight: FontWeight.w600,
+                  fontSize: isTablet ? 14 : 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 600;
+    final isDesktop = screenSize.width > 1200;
+    final horizontalPadding = isDesktop ? 40.0 : isTablet ? 30.0 : 20.0;
+    final maxWidth = isDesktop ? 800.0 : double.infinity;
+
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(isTablet ? 100 : 80),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.secondary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: AppBar(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(isTablet ? 12 : 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(isTablet ? 14 : 10),
+                  ),
+                  child: Icon(
+                    Icons.security,
+                    color: Colors.white,
+                    size: isTablet ? 28 : 20,
+                  ),
+                ),
+                SizedBox(width: isTablet ? 16 : 12),
+                Text(
+                  "تغيير كلمة المرور",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: isTablet ? 22 : 18,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            leading: Container(
+              margin: EdgeInsets.all(isTablet ? 12 : 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios,
+                  color: Colors.white,
+                  size: isTablet ? 22 : 18,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            actions: [
+              Container(
+                margin: EdgeInsets.all(isTablet ? 12 : 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.help_outline,
+                    color: Colors.white,
+                    size: isTablet ? 24 : 20,
+                  ),
+                  onPressed: _showAdvancedHelpDialog,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Center(
+            child: Container(
+              width: maxWidth,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(horizontalPadding),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      // Header Card
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(isTablet ? 32 : 24),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.primary, AppColors.secondary],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(isTablet ? 24 : 20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(isTablet ? 20 : 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.security,
+                                size: isTablet ? 50 : 40,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: isTablet ? 20 : 16),
+                            Text(
+                              "حماية حسابك",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: isTablet ? 30 : 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: isTablet ? 12 : 8),
+                            Text(
+                              "قم بتحديث كلمة المرور للحفاظ على أمان حسابك",
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: isTablet ? 16 : 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      SizedBox(height: isTablet ? 40 : 30),
+                      
+                      // Current User Info
+                      Container(
+                        padding: EdgeInsets.all(isTablet ? 24 : 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(isTablet ? 16 : 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                              ),
+                              child: Icon(
+                                Icons.email_outlined,
+                                color: AppColors.primary,
+                                size: isTablet ? 28 : 24,
+                              ),
+                            ),
+                            SizedBox(width: isTablet ? 20 : 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "البريد الإلكتروني",
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: isTablet ? 14 : 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(height: isTablet ? 6 : 4),
+                                  Text(
+                                    widget.user.email,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: isTablet ? 18 : 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      SizedBox(height: isTablet ? 40 : 30),
+                      
+                      // Form Fields
+                      _buildPasswordField(
+                        controller: currentPasswordController,
+                        label: "كلمة المرور الحالية",
+                        isVisible: isCurrentVisible,
+                        onVisibilityToggle: () => setState(() => isCurrentVisible = !isCurrentVisible),
+                        validator: _validateCurrentPassword,
+                      ),
+                      
+                      SizedBox(height: isTablet ? 32 : 24),
+                      
+                      _buildPasswordField(
+                        controller: newPasswordController,
+                        label: "كلمة المرور الجديدة",
+                        isVisible: isNewVisible,
+                        onVisibilityToggle: () => setState(() => isNewVisible = !isNewVisible),
+                        validator: _validateNewPassword,
+                        showStrengthIndicator: true,
+                      ),
+                      
+                      SizedBox(height: isTablet ? 32 : 24),
+                      
+                      _buildPasswordField(
+                        controller: confirmPasswordController,
+                        label: "تأكيد كلمة المرور الجديدة",
+                        isVisible: isConfirmVisible,
+                        onVisibilityToggle: () => setState(() => isConfirmVisible = !isConfirmVisible),
+                        validator: _validateConfirmPassword,
+                      ),
+                      
+                      SizedBox(height: isTablet ? 30 : 20),
+                      
+                      // Security Tips
+                      Container(
+                        padding: EdgeInsets.all(isTablet ? 20 : 16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.tips_and_updates, 
+                                  color: Colors.blue.shade700, 
+                                  size: isTablet ? 24 : 20,
+                                ),
+                                SizedBox(width: isTablet ? 12 : 8),
+                                Text(
+                                  "نصائح لكلمة مرور قوية:",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade700,
+                                    fontSize: isTablet ? 16 : 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: isTablet ? 12 : 8),
+                            Text(
+                              "• استخدم 8 أحرف على الأقل\n• امزج بين الأحرف الكبيرة والصغيرة\n• أضف أرقام ورموز خاصة\n• تجنب المعلومات الشخصية",
+                              style: TextStyle(
+                                color: Colors.blue.shade600,
+                                fontSize: isTablet ? 14 : 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      SizedBox(height: isTablet ? 50 : 40),
+                      
+                      // Save Button
+                      Container(
+                        width: double.infinity,
+                        height: isTablet ? 64 : 56,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.primary, AppColors.secondary],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.4),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _saveNewPassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                            ),
+                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  width: isTablet ? 28 : 24,
+                                  height: isTablet ? 28 : 24,
+                                  child: const CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.security, 
+                                      color: Colors.white,
+                                      size: isTablet ? 28 : 24,
+                                    ),
+                                    SizedBox(width: isTablet ? 16 : 12),
+                                    Text(
+                                      "حفظ التغييرات",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isTablet ? 18 : 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      
+                      SizedBox(height: isTablet ? 30 : 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,112 @@
+import 'package:application/constants/app_colors.dart';
+import 'package:application/models/action.dart';
+import 'package:application/models/bid.dart';
+import 'package:application/models/post.dart';
+import 'package:application/screens/Main_User_Pages.dart/Auction_pages/auction_home_page.dart';
+import 'package:application/screens/Main_User_Pages.dart/dashboard.dart/dashboard_page.dart';
+import 'package:application/widgets/main_page/lower_bar_pages.dart';
+import 'package:flutter/material.dart';
+
+class HomeScreen extends StatefulWidget {
+  final List<Auction> auction;
+  final List<Post> posts;
+  final List<Bid> bids;
+  final List<String> categories;
+
+  const HomeScreen({
+    super.key,
+    required this.auction,
+    required this.posts,
+    required this.bids,
+    required this.categories,
+  });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  late AnimationController _drawerHintController;
+  late Animation<Offset> _drawerHintAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _drawerHintController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+
+    _drawerHintAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0.12, 0),
+    ).animate(
+      CurvedAnimation(parent: _drawerHintController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _drawerHintController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: const AuctionDrawer(selectedItem: 'auctions'), 
+      body: Stack(
+        children: [
+          AuctionHomePage(
+            auction: widget.auction,
+            posts: widget.posts,
+            bids: widget.bids,
+            categories: widget.categories,
+          ),
+
+          Positioned(
+            top: MediaQuery.of(context).size.height / 2 - 16,
+            left: Directionality.of(context) == TextDirection.rtl ? null : 0,
+            right: Directionality.of(context) == TextDirection.rtl ? 0 : null,
+            child: SlideTransition(
+              position: _drawerHintAnimation,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.12),
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(10),
+                    right: Radius.circular(10),
+                  ),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.3),
+                    width: 0.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1.5),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Directionality.of(context) == TextDirection.rtl
+                      ? Icons.arrow_back_ios_new_rounded
+                      : Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: LowerBar(
+        currentIndex: 1,
+        onTap: (_) {},
+      ),
+    );
+  }
+}
