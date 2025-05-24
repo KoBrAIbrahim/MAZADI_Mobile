@@ -3,6 +3,8 @@ import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/widgets/Header/header_build.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:hive/hive.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -11,7 +13,8 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMixin {
+class _SettingsPageState extends State<SettingsPage>
+    with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool isDarkMode = false;
@@ -23,6 +26,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    _loadSavedLanguage();
 
     _drawerHintController = AnimationController(
       vsync: this,
@@ -37,6 +41,16 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
     );
   }
 
+  Future<void> _loadSavedLanguage() async {
+    var box = await Hive.openBox('settings');
+    String savedLang = box.get('language', defaultValue: 'ar');
+    setState(() => selectedLanguage = savedLang);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.setLocale(Locale(savedLang));
+    });
+  }
+
   @override
   void dispose() {
     _drawerHintController.dispose();
@@ -47,14 +61,14 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
-      int currentIndexLowerBar = 0;
-
+    int currentIndexLowerBar = 0;
+ bool isRTL = context.locale.languageCode == 'ar';
     return Scaffold(
       key: _scaffoldKey,
       drawer: AuctionDrawer(selectedItem: 'settings'),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: buildHeader(screenSize, isTablet, 'الإعدادات'),
+        child: buildHeader(screenSize, isTablet, 'settings.title'.tr()),
       ),
       backgroundColor: Colors.white,
       body: Stack(
@@ -62,23 +76,27 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
           ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             children: [
-              _buildSectionTitle('المظهر'),
+              _buildSectionTitle('settings.appearance'.tr()),
               _buildDarkModeSwitch(),
               const SizedBox(height: 24),
-              _buildSectionTitle('اللغة'),
+              _buildSectionTitle('settings.language'.tr()),
               _buildLanguageSelector(),
             ],
           ),
           Positioned(
             top: MediaQuery.of(context).size.height / 2 - 16,
-            left: Directionality.of(context) == TextDirection.rtl ? null : 0,
-            right: Directionality.of(context) == TextDirection.rtl ? 0 : null,
+            left: isRTL ? null : 0,
+            right:isRTL ? 0 : null,
+
             child: SlideTransition(
               position: _drawerHintAnimation,
               child: GestureDetector(
                 onTap: () => _scaffoldKey.currentState?.openDrawer(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.12),
                     borderRadius: const BorderRadius.horizontal(
@@ -98,9 +116,9 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                     ],
                   ),
                   child: Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.arrow_forward_ios_rounded,
+                   isRTL
+                        ? Icons.arrow_forward
+                        : Icons.arrow_forward,
                     size: 14,
                     color: AppColors.primary,
                   ),
@@ -114,7 +132,6 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
         currentIndex: currentIndexLowerBar,
         onTap: (index) {
           setState(() => currentIndexLowerBar = index);
-          // هنا تقدر تضيف التنقل بين الصفحات حسب index
         },
       ),
     );
@@ -136,11 +153,10 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
 
   Widget _buildDarkModeSwitch() {
     return SwitchListTile(
-      title: const Text('الوضع الليلي'),
+      title: Text('settings.dark_mode'.tr()),
       value: isDarkMode,
       onChanged: (value) {
         setState(() => isDarkMode = value);
-        // TODO: ربطه مع ThemeProvider أو AppState لتطبيق الوضع الليلي فعلياً
       },
       activeColor: AppColors.primary,
     );
@@ -153,13 +169,16 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
-      items: const [
-        DropdownMenuItem(value: 'ar', child: Text('العربية')),
-        DropdownMenuItem(value: 'en', child: Text('English')),
+      items: [
+        DropdownMenuItem(value: 'ar', child: Text('settings.arabic'.tr())),
+        DropdownMenuItem(value: 'en', child: Text('settings.english'.tr())),
       ],
-      onChanged: (value) {
+      onChanged: (value) async {
         setState(() => selectedLanguage = value!);
-        // TODO: تطبيق تغيير اللغة على مستوى التطبيق
+        context.setLocale(Locale(value!));
+
+        var box = await Hive.openBox('settings');
+        await box.put('language', value);
       },
     );
   }

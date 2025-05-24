@@ -28,6 +28,8 @@ class _InterestedPageState extends State<InterestedPage> {
     loadMoreFavPosts();
 
     _scrollController.addListener(() {
+      if (!mounted) return;
+
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
         loadMoreFavPosts();
@@ -57,7 +59,7 @@ class _InterestedPageState extends State<InterestedPage> {
   Widget build(BuildContext context) {
     return HomePage(
       posts: displayedFavPosts,
-     pageType: PageType.interested,
+      pageType: PageType.interested,
       scrollController: _scrollController,
     );
   }

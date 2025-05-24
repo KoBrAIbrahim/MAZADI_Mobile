@@ -2,6 +2,7 @@ import 'package:application/screens/Main_User_Pages.dart/Profile_Page/change_pas
 import 'package:flutter/material.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/models/user.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class EditProfileSheet extends StatefulWidget {
   final User user;
@@ -26,11 +27,19 @@ class _EditProfileSheetState extends State<EditProfileSheet>
   late Animation<double> _fadeAnimation;
 
   final List<String> palestinianCities = [
-    "رام الله", "نابلس", "الخليل", "بيت لحم", "جنين",
-    "طولكرم", "قلقيلية", "سلفيت", "أريحا", "طوباس"
+    tr('cities.ramallah'),
+    tr('cities.nablus'),
+    tr('cities.hebron'),
+    tr('cities.bethlehem'),
+    tr('cities.jenin'),
+    tr('cities.tulkarm'),
+    tr('cities.qalqilya'),
+    tr('cities.salfit'),
+    tr('cities.jericho'),
+    tr('cities.tubas'),
   ];
 
-  final List<String> genders = ["ذكر", "أنثى"];
+  final List<String> genders = [tr('gender.male'), tr('gender.female')];
 
   @override
   void initState() {
@@ -110,7 +119,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          
+
           // Header Content
           Row(
             children: [
@@ -132,7 +141,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "تعديل المعلومات الشخصية",
+                      tr('profile.edit.title'),
                       style: TextStyle(
                         fontSize: isTablet ? 22 : 18,
                         fontWeight: FontWeight.bold,
@@ -141,7 +150,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                     ),
                     SizedBox(height: isTablet ? 6 : 4),
                     Text(
-                      "قم بتحديث معلوماتك الشخصية",
+                      tr('profile.edit.subtitle'),
                       style: TextStyle(
                         fontSize: isTablet ? 15 : 13,
                         color: Colors.white.withOpacity(0.9),
@@ -329,12 +338,13 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   vertical: isTablet ? 20 : 16,
                 ),
               ),
-              items: items.map((item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                );
-              }).toList(),
+              items:
+                  items.map((item) {
+                    return DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(item),
+                    );
+                  }).toList(),
               onChanged: onChanged,
               icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
@@ -372,7 +382,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
             size: isTablet ? 24 : 20,
           ),
           label: Text(
-            "تغيير كلمة المرور",
+            tr('profile.password.change'),
             style: TextStyle(
               color: Colors.white,
               fontSize: isTablet ? 17 : 15,
@@ -384,14 +394,17 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (_) => Container(
-                height: MediaQuery.of(context).size.height * 0.7,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: ChangePasswordPage(user: widget.user),
-              ),
+              builder:
+                  (_) => Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                    ),
+                    child: ChangePasswordPage(user: widget.user),
+                  ),
             );
           },
           style: ElevatedButton.styleFrom(
@@ -435,22 +448,23 @@ class _EditProfileSheetState extends State<EditProfileSheet>
         ],
       ),
       child: ElevatedButton.icon(
-        icon: _isLoading
-            ? SizedBox(
-                width: isTablet ? 22 : 18,
-                height: isTablet ? 22 : 18,
-                child: const CircularProgressIndicator(
+        icon:
+            _isLoading
+                ? SizedBox(
+                  width: isTablet ? 22 : 18,
+                  height: isTablet ? 22 : 18,
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : Icon(
+                  Icons.save_outlined,
                   color: Colors.white,
-                  strokeWidth: 2,
+                  size: isTablet ? 24 : 20,
                 ),
-              )
-            : Icon(
-                Icons.save_outlined,
-                color: Colors.white,
-                size: isTablet ? 24 : 20,
-              ),
         label: Text(
-          _isLoading ? "جاري الحفظ..." : "حفظ التغييرات",
+          _isLoading ? tr('profile.save.loading') : tr('profile.save.button'),
           style: TextStyle(
             color: Colors.white,
             fontSize: isTablet ? 18 : 16,
@@ -471,26 +485,28 @@ class _EditProfileSheetState extends State<EditProfileSheet>
 
   void _saveChanges() async {
     setState(() => _isLoading = true);
-    
+
     // Simulate API call
     await Future.delayed(const Duration(seconds: 2));
-    
+
     setState(() => _isLoading = false);
-    
+
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text("تم تحديث المعلومات بنجاح"),
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(tr('profile.save.success')),
             ],
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -529,7 +545,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "معلومات مهمة",
+                  tr('profile.info.title'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.blue.shade700,
@@ -538,7 +554,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                 ),
                 SizedBox(height: isTablet ? 6 : 4),
                 Text(
-                  "تأكد من صحة المعلومات قبل الحفظ. يمكنك تغيير كلمة المرور في أي وقت.",
+                  tr('profile.info.message'),
                   style: TextStyle(
                     color: Colors.blue.shade600,
                     fontSize: isTablet ? 14 : 12,
@@ -569,11 +585,12 @@ class _EditProfileSheetState extends State<EditProfileSheet>
         child: Container(
           height: MediaQuery.of(context).size.height * (isTablet ? 0.85 : 0.9),
           width: maxWidth,
-          margin: screenSize.width > 1200 
-              ? EdgeInsets.symmetric(
-                  horizontal: (screenSize.width - maxWidth) / 2,
-                )
-              : EdgeInsets.zero,
+          margin:
+              screenSize.width > 1200
+                  ? EdgeInsets.symmetric(
+                    horizontal: (screenSize.width - maxWidth) / 2,
+                  )
+                  : EdgeInsets.zero,
           decoration: BoxDecoration(
             color: Colors.grey[50],
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -587,46 +604,50 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   child: Column(
                     children: [
                       _buildInfoCard(),
-                      
+
                       _buildAdvancedTextField(
-                        "الاسم الكامل",
+                        tr('profile.fields.fullName'),
                         nameController,
                         Icons.person_outline,
                       ),
-                      
+
                       _buildAdvancedTextField(
-                        "رقم الهاتف",
+                        tr('profile.fields.phone'),
                         phoneController,
                         Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                       ),
-                      
+
                       _buildAdvancedDropdownField(
-                        "المدينة",
+                        tr('profile.fields.city'),
                         selectedCity,
                         palestinianCities,
                         (value) => setState(() => selectedCity = value),
                         Icons.location_city_outlined,
                       ),
-                      
+
                       _buildAdvancedDropdownField(
-                        "الجنس",
+                        tr('profile.fields.gender'),
                         selectedGender,
                         genders,
                         (value) => setState(() => selectedGender = value),
                         Icons.person_pin_outlined,
                       ),
-                      
+
                       // Divider
                       Container(
-                        margin: EdgeInsets.symmetric(vertical: isTablet ? 24 : 20),
+                        margin: EdgeInsets.symmetric(
+                          vertical: isTablet ? 24 : 20,
+                        ),
                         child: Row(
                           children: [
                             Expanded(child: Divider(color: Colors.grey[300])),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: isTablet ? 16 : 12),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isTablet ? 16 : 12,
+                              ),
                               child: Text(
-                                "إعدادات الأمان",
+                                tr('profile.security.title'),
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: isTablet ? 14 : 12,
@@ -638,13 +659,13 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                           ],
                         ),
                       ),
-                      
+
                       _buildAdvancedPasswordButton(),
-                      
+
                       SizedBox(height: isTablet ? 24 : 20),
-                      
+
                       _buildAdvancedSaveButton(),
-                      
+
                       SizedBox(height: isTablet ? 20 : 16),
                     ],
                   ),

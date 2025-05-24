@@ -10,6 +10,7 @@ import 'package:application/widgets/main_page/category_carousel.dart';
 import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:application/widgets/main_page/search_bar.dart';
 import 'package:application/widgets/post/post_card.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 enum PageType { main, interested, myPosts, myWinners }
 
@@ -64,7 +65,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
 
     _scrollController = widget.scrollController ?? ScrollController();
-    _scrollController.addListener(_handleScroll);
+    _scrollController.addListener(() {
+      if (mounted) {
+        _handleScroll();
+      }
+    });
 
     _drawerHintController = AnimationController(
       vsync: this,
@@ -99,26 +104,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void dispose() {
     _drawerHintController.dispose();
     _scrollController.removeListener(_handleScroll);
-    _scrollController.dispose();
+    if (widget.scrollController == null) {
+      _scrollController.dispose();
+    }
     super.dispose();
   }
 
   String _getPageTitle(PageType type) {
     switch (type) {
       case PageType.interested:
-        return "المزادات المفضلة";
+        return tr('home.title.interested');
       case PageType.myPosts:
-        return "منشوراتي";
+        return tr('home.title.myPosts');
       case PageType.myWinners:
-        return "المنشورات التي ربحتها";
+        return tr('home.title.myWinners');
       default:
-        return "الرئيسية";
+        return tr('home.title.main');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print('Directionality = ${Directionality.of(context)}');
+    print('Locale = ${context.locale.languageCode}');
     List<Post> displayedPosts = widget.posts;
+    // Get text direction based on current locale
+    bool isRTL = context.locale.languageCode == 'ar';
 
     if (widget.pageType != PageType.main) {
       final totalPages = (displayedPosts.length / _pageSize).ceil();
@@ -221,9 +232,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           addButton(1);
                           if (_currentPage > 4) {
                             pageButtons.add(
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 4),
-                                child: Text("..."),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Text(tr('home.pagination.ellipsis')),
                               ),
                             );
                           }
@@ -235,9 +248,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           for (int i = start; i <= end; i++) addButton(i);
                           if (_currentPage < totalPages - 3) {
                             pageButtons.add(
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 4),
-                                child: Text("..."),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Text(tr('home.pagination.ellipsis')),
                               ),
                             );
                           }
@@ -310,11 +325,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ],
             ),
 
-            // السهم الجانبي المتحرك
             Positioned(
               top: MediaQuery.of(context).size.height / 2 - 16,
-              left: Directionality.of(context) == TextDirection.rtl ? null : 0,
-              right: Directionality.of(context) == TextDirection.rtl ? 0 : null,
+              left: isRTL ? null : 0,
+              right: isRTL ? 0 : null,
               child: SlideTransition(
                 position: _drawerHintAnimation,
                 child: Container(
@@ -341,29 +355,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ],
                   ),
                   child: Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.arrow_forward_ios_rounded,
-                    size: 14,
-                    color: AppColors.primary,
+                    isRTL ? Icons.arrow_forward : Icons.arrow_forward,
+                    size: 24,
+                    color: Colors.teal,
                   ),
                 ),
               ),
             ),
+
             if (_showScrollToTopButton)
               Positioned(
                 bottom: 80,
                 right: 20,
                 child: GestureDetector(
                   onTap: () {
-                    // ترجع للأعلى
+                    // Scroll to top
                     _scrollController.animateTo(
                       0,
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.easeInOut,
                     );
 
-                    // تظهر شريط "إضافة منشور"
+                    // Show add post bar
                     setState(() {
                       _isAddBarVisible = true;
                     });

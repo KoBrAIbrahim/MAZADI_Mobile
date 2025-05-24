@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const AuctionDrawer(selectedItem: 'auctions'), 
+      drawer: const AuctionDrawer(selectedItem: 'auctions'),
       body: Stack(
         children: [
           AuctionHomePage(
@@ -93,8 +93,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 child: Icon(
                   Directionality.of(context) == TextDirection.rtl
-                      ? Icons.arrow_back_ios_new_rounded
-                      : Icons.arrow_forward_ios_rounded,
+                      ? Icons.arrow_forward
+                      : Icons.arrow_forward,
                   size: 14,
                   color: AppColors.primary,
                 ),
@@ -103,10 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      bottomNavigationBar: LowerBar(
-        currentIndex: 1,
-        onTap: (_) {},
-      ),
+      bottomNavigationBar: LowerBar(currentIndex: 1, onTap: (_) {}),
     );
   }
 }

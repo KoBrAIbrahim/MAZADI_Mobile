@@ -1,6 +1,9 @@
+import 'package:application/main.dart';
 import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -48,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'تسجيل الدخول',
+                            'login_title'.tr(),
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -58,9 +61,17 @@ class _LoginPageState extends State<LoginPage> {
                         ),
 
                         const SizedBox(height: 12),
-                        _buildTextField(Icons.mail_outline, 'Email', false),
+                        _buildTextField(
+                          Icons.mail_outline,
+                          'hint_email'.tr(),
+                          false,
+                        ),
                         const SizedBox(height: 16),
-                        _buildTextField(Icons.lock_outline, 'Password', true),
+                        _buildTextField(
+                          Icons.lock_outline,
+                          'hint_password'.tr(),
+                          true,
+                        ),
 
                         const SizedBox(height: 16),
 
@@ -79,17 +90,27 @@ class _LoginPageState extends State<LoginPage> {
                                     width: 20,
                                     height: 20,
                                     decoration: BoxDecoration(
-                                      color: _rememberMe ? AppColors.secondary : Colors.transparent,
-                                      border: Border.all(color: AppColors.secondary),
+                                      color:
+                                          _rememberMe
+                                              ? AppColors.secondary
+                                              : Colors.transparent,
+                                      border: Border.all(
+                                        color: AppColors.secondary,
+                                      ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: _rememberMe
-                                        ? const Icon(Icons.check, size: 16, color: Colors.white)
-                                        : null,
+                                    child:
+                                        _rememberMe
+                                            ? const Icon(
+                                              Icons.check,
+                                              size: 16,
+                                              color: Colors.white,
+                                            )
+                                            : null,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Remember Me',
+                                    'remember_me'.tr(),
                                     style: TextStyle(
                                       color: Colors.grey[800],
                                       fontSize: 14,
@@ -100,16 +121,13 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                // تنفيذ التنقل لصفحة نسيان كلمة المرور
-                                // Navigator.pushNamed(context, '/forgot-password');
-                                print("Forgot Password tapped");
+                                context.go('/forget_password');
                               },
                               child: Text(
-                                'Forgot Password?',
+                                'forgot_password'.tr(),
                                 style: TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 14,
-                                  
                                 ),
                               ),
                             ),
@@ -130,11 +148,10 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             onPressed: () {
-                              // تنفيذ الدخول
-                              print("Login Pressed | Remember Me: $_rememberMe");
+                              context.go('/home_page', extra: posts);
                             },
-                            child: const Text(
-                              'Login',
+                            child: Text(
+                              'login_title'.tr(),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -150,16 +167,16 @@ class _LoginPageState extends State<LoginPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "Don't have an account?",
+                              'dont_have_account'.tr(),
                               style: TextStyle(color: Colors.grey[700]),
                             ),
                             const SizedBox(width: 4),
                             GestureDetector(
                               onTap: () {
-                                // Navigator.pushNamed(context, '/signup');
+                                context.go('/signup');
                               },
                               child: Text(
-                                'Sign up',
+                                'sign_up'.tr(),
                                 style: TextStyle(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
@@ -189,7 +206,10 @@ class _LoginPageState extends State<LoginPage> {
         prefixIcon: Icon(icon, color: AppColors.primary),
         hintText: hint,
         hintStyle: const TextStyle(fontSize: 16),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: AppColors.primary),
@@ -198,19 +218,20 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              )
-            : null,
+        suffixIcon:
+            isPassword
+                ? IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                )
+                : null,
       ),
     );
   }

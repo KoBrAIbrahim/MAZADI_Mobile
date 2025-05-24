@@ -1,23 +1,13 @@
+import 'package:application/Router/app_route.dart';
 import 'package:application/models/action.dart';
 import 'package:application/models/bid.dart';
 import 'package:application/models/post.dart';
 import 'package:application/models/user.dart';
-import 'package:application/screens/Login_Pages/login_page.dart';
-import 'package:application/screens/Main_User_Pages.dart/Auction_pages/main_page_auction.dart';
-import 'package:application/screens/Main_User_Pages.dart/MyPost/my_post_page.dart';
-import 'package:application/screens/Main_User_Pages.dart/home_page.dart';
-import 'package:application/screens/Main_User_Pages.dart/interested_pages/main_interested_page.dart';
-import 'package:application/screens/Main_User_Pages.dart/Profile_Page/profile_page.dart';
-import 'package:application/screens/Main_User_Pages.dart/my_winner_auction_page.dart/wiiner_post_page.dart';
-import 'package:application/screens/Phone_verification_page.dart/OTP_verification_page.dart';
-import 'package:application/screens/Setting/setting_page.dart';
-import 'package:application/screens/TechnicalSupport/about_app_page.dart';
-import 'package:application/screens/TechnicalSupport/technical_support_page.dart';
-import 'package:application/screens/signup_Pages/account_signup_page.dart';
-import 'package:application/screens/signup_Pages/confirm_signup_page.dart';
-import 'package:application/screens/signup_Pages/info_signup_page.dart';
-import 'package:application/screens/welcome_page.dart';
+import 'package:application/setup/app_localization_setup.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
 /*
 List<Post> posts = [
   Post(
@@ -229,6 +219,7 @@ List<Auction> auctions = [
     currentHighestBid: 85.0,
   ),
 ];
+
 final User testUser = User(
   id: 1,
   firstName: "Ibrahim",
@@ -247,11 +238,30 @@ final User testUser = User(
   last4: 1234,
   cardBrand: "Visa",
   my_posts: posts,
-  winner_posts: posts_1
-
+  winner_posts: posts_1,
 );
-void main() {
-  runApp(const MazadiApp());
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await EasyLocalization.ensureInitialized();
+
+  await Hive.initFlutter();
+
+  var settingsBox = await Hive.openBox('settings');
+
+  String? savedLangCode = settingsBox.get('language', defaultValue: 'ar');
+  Locale startLocale = Locale(savedLangCode ?? 'ar');
+
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      path: 'assets/langs',
+      fallbackLocale: const Locale('ar'),
+      startLocale: Locale(savedLangCode ?? 'ar'),
+      child: const MazadiApp(),
+    ),
+  );
 }
 
 class MazadiApp extends StatelessWidget {
@@ -259,20 +269,21 @@ class MazadiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'مزادي',
-      theme: ThemeData(
-        fontFamily: 'Cairo',
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      //home: AuctionApp(auction: auctions, posts: posts, bids: bids),
-      //home: HomePage(posts: posts),
-      //home: InterestedPage(allPosts: posts,)
-      //home: ProfilePage(user: testUser)
-      //home: MyWinnersPage( winnerPosts: posts,)
-      //home: AboutAppPage()
-      home: StartupPage()
+    return Builder(
+      builder: (context) {
+        return MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          title: tr('app.title'),
+          theme: ThemeData(
+            fontFamily: 'Cairo',
+            scaffoldBackgroundColor: Colors.white,
+          ),
+          locale: context.locale,
+          supportedLocales: context.supportedLocales,
+          localizationsDelegates: context.localizationDelegates,
+          routerConfig: appRouter,
+        );
+      },
     );
   }
 }

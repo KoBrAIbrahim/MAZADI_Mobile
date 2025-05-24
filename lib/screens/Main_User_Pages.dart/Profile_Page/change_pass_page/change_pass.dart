@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/models/user.dart';
 
@@ -13,9 +14,11 @@ class ChangePasswordPage extends StatefulWidget {
 
 class _ChangePasswordPageState extends State<ChangePasswordPage>
     with TickerProviderStateMixin {
-  final TextEditingController currentPasswordController = TextEditingController();
+  final TextEditingController currentPasswordController =
+      TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool isCurrentVisible = false;
@@ -41,15 +44,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutBack));
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutBack),
+    );
 
     _fadeController.forward();
     _slideController.forward();
@@ -77,22 +82,25 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       strengthText = "";
     } else if (password.length < 6) {
       strength = 0.2;
-      strengthText = "ضعيف جداً";
+      strengthText = "password_strength_very_weak".tr();
     } else if (password.length < 8) {
       strength = 0.4;
-      strengthText = "ضعيف";
+      strengthText = "password_strength_weak".tr();
     } else {
       strength = 0.6;
-      strengthText = "متوسط";
-      
+      strengthText = "password_strength_medium".tr();
+
       if (RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(password)) {
         strength = 0.8;
-        strengthText = "قوي";
+        strengthText = "password_strength_strong".tr();
       }
-      
-      if (RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])').hasMatch(password) && password.length >= 10) {
+
+      if (RegExp(
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])',
+          ).hasMatch(password) &&
+          password.length >= 10) {
         strength = 1.0;
-        strengthText = "قوي جداً";
+        strengthText = "password_strength_very_strong".tr();
       }
     }
 
@@ -111,27 +119,27 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
 
   String? _validateCurrentPassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى إدخال كلمة المرور الحالية';
+      return 'validation_current_password_required'.tr();
     }
     return null;
   }
 
   String? _validateNewPassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى إدخال كلمة المرور الجديدة';
+      return 'validation_new_password_required'.tr();
     }
     if (value.length < 8) {
-      return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+      return 'validation_password_min_length'.tr();
     }
     return null;
   }
 
   String? _validateConfirmPassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى تأكيد كلمة المرور';
+      return 'validation_confirm_password_required'.tr();
     }
     if (value != newPasswordController.text) {
-      return 'كلمة المرور غير متطابقة';
+      return 'validation_passwords_not_match'.tr();
     }
     return null;
   }
@@ -169,10 +177,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white,
-                      AppColors.primary.withOpacity(0.05),
-                    ],
+                    colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
                   ),
                 ),
                 child: Column(
@@ -208,9 +213,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            "مساعدة تغيير كلمة المرور",
-                            style: TextStyle(
+                          Text(
+                            "help_dialog_title".tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -219,7 +224,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            "دليل شامل لتحديث كلمة المرور بأمان",
+                            "help_dialog_subtitle".tr(),
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 14,
@@ -229,7 +234,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         ],
                       ),
                     ),
-                    
+
                     // Content
                     Flexible(
                       child: SingleChildScrollView(
@@ -239,55 +244,61 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                           children: [
                             _buildHelpStep(
                               step: "1",
-                              title: "أدخل كلمة المرور الحالية",
-                              description: "تأكد من إدخال كلمة المرور المستخدمة حالياً للدخول إلى حسابك",
+                              title: "help_step_1_title".tr(),
+                              description: "help_step_1_description".tr(),
                               icon: Icons.login,
                             ),
                             _buildHelpStep(
                               step: "2",
-                              title: "إنشاء كلمة مرور جديدة قوية",
-                              description: "استخدم 8 أحرف على الأقل مع مزيج من الأحرف والأرقام والرموز",
+                              title: "help_step_2_title".tr(),
+                              description: "help_step_2_description".tr(),
                               icon: Icons.security,
                             ),
                             _buildHelpStep(
                               step: "3",
-                              title: "مراقبة مؤشر القوة",
-                              description: "تأكد من وصول مؤشر قوة كلمة المرور إلى اللون الأخضر",
+                              title: "help_step_3_title".tr(),
+                              description: "help_step_3_description".tr(),
                               icon: Icons.speed,
                             ),
                             _buildHelpStep(
                               step: "4",
-                              title: "تأكيد كلمة المرور",
-                              description: "أعد كتابة كلمة المرور الجديدة للتأكد من صحتها",
+                              title: "help_step_4_title".tr(),
+                              description: "help_step_4_description".tr(),
                               icon: Icons.verified,
                             ),
                             _buildHelpStep(
                               step: "5",
-                              title: "حفظ التغييرات",
-                              description: "اضغط على زر حفظ التغييرات لتطبيق كلمة المرور الجديدة",
+                              title: "help_step_5_title".tr(),
+                              description: "help_step_5_description".tr(),
                               icon: Icons.save,
                               isLast: true,
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // Security Tips
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: Colors.amber.shade50,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.amber.shade200),
+                                border: Border.all(
+                                  color: Colors.amber.shade200,
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.lightbulb, color: Colors.amber.shade700, size: 20),
+                                      Icon(
+                                        Icons.lightbulb,
+                                        color: Colors.amber.shade700,
+                                        size: 20,
+                                      ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        "نصائح أمنية مهمة:",
+                                        "security_tips_title".tr(),
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Colors.amber.shade700,
@@ -298,10 +309,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    "• لا تشارك كلمة المرور مع أحد\n"
-                                    "• تجنب استخدام معلومات شخصية\n"
-                                    "• غيّر كلمة المرور بانتظام\n"
-                                    "• استخدم كلمة مرور مختلفة لكل حساب",
+                                    "security_tips_content".tr(),
                                     style: TextStyle(
                                       color: Colors.amber.shade700,
                                       fontSize: 12,
@@ -315,7 +323,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         ),
                       ),
                     ),
-                    
+
                     // Footer
                     Padding(
                       padding: const EdgeInsets.all(20),
@@ -325,14 +333,16 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   side: BorderSide(color: AppColors.primary),
                                 ),
                               ),
                               child: Text(
-                                "إغلاق",
+                                "close".tr(),
                                 style: TextStyle(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
@@ -346,18 +356,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                               onPressed: () {
                                 Navigator.pop(context);
                                 // Auto-focus on first field
-                                FocusScope.of(context).requestFocus(FocusNode());
+                                FocusScope.of(
+                                  context,
+                                ).requestFocus(FocusNode());
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                "البدء الآن",
-                                style: TextStyle(
+                              child: Text(
+                                "start_now".tr(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -461,26 +475,28 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     }
 
     setState(() => isLoading = true);
-    
+
     // Simulate API call
     await Future.delayed(const Duration(seconds: 2));
 
     setState(() => isLoading = false);
-    
+
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text("تم تحديث كلمة المرور بنجاح"),
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text("password_updated_successfully".tr()),
             ],
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -497,7 +513,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
     final isDesktop = screenSize.width > 1200;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -559,7 +575,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 borderSide: const BorderSide(color: Colors.red),
               ),
               contentPadding: EdgeInsets.symmetric(
-                horizontal: isTablet ? 20 : 16, 
+                horizontal: isTablet ? 20 : 16,
                 vertical: isTablet ? 24 : 20,
               ),
             ),
@@ -573,7 +589,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 child: LinearProgressIndicator(
                   value: passwordStrength,
                   backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(_getStrengthColor()),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _getStrengthColor(),
+                  ),
                   minHeight: isTablet ? 6 : 4,
                 ),
               ),
@@ -598,7 +616,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
     final isDesktop = screenSize.width > 1200;
-    final horizontalPadding = isDesktop ? 40.0 : isTablet ? 30.0 : 20.0;
+    final horizontalPadding =
+        isDesktop
+            ? 40.0
+            : isTablet
+            ? 30.0
+            : 20.0;
     final maxWidth = isDesktop ? 800.0 : double.infinity;
 
     return Scaffold(
@@ -638,7 +661,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 ),
                 SizedBox(width: isTablet ? 16 : 12),
                 Text(
-                  "تغيير كلمة المرور",
+                  "change_password_title".tr(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -709,7 +732,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(isTablet ? 24 : 20),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 24 : 20,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withOpacity(0.3),
@@ -734,7 +759,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             ),
                             SizedBox(height: isTablet ? 20 : 16),
                             Text(
-                              "حماية حسابك",
+                              "protect_account_title".tr(),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: isTablet ? 30 : 24,
@@ -743,7 +768,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             ),
                             SizedBox(height: isTablet ? 12 : 8),
                             Text(
-                              "قم بتحديث كلمة المرور للحفاظ على أمان حسابك",
+                              "protect_account_subtitle".tr(),
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: isTablet ? 16 : 14,
@@ -753,15 +778,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                           ],
                         ),
                       ),
-                      
+
                       SizedBox(height: isTablet ? 40 : 30),
-                      
+
                       // Current User Info
                       Container(
                         padding: EdgeInsets.all(isTablet ? 24 : 20),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 20 : 16,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.05),
@@ -776,7 +803,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                               padding: EdgeInsets.all(isTablet ? 16 : 12),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                                borderRadius: BorderRadius.circular(
+                                  isTablet ? 16 : 12,
+                                ),
                               ),
                               child: Icon(
                                 Icons.email_outlined,
@@ -790,7 +819,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "البريد الإلكتروني",
+                                    "email_label".tr(),
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: isTablet ? 14 : 12,
@@ -811,47 +840,56 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                           ],
                         ),
                       ),
-                      
+
                       SizedBox(height: isTablet ? 40 : 30),
-                      
+
                       // Form Fields
                       _buildPasswordField(
                         controller: currentPasswordController,
-                        label: "كلمة المرور الحالية",
+                        label: "current_password_label".tr(),
                         isVisible: isCurrentVisible,
-                        onVisibilityToggle: () => setState(() => isCurrentVisible = !isCurrentVisible),
+                        onVisibilityToggle:
+                            () => setState(
+                              () => isCurrentVisible = !isCurrentVisible,
+                            ),
                         validator: _validateCurrentPassword,
                       ),
-                      
+
                       SizedBox(height: isTablet ? 32 : 24),
-                      
+
                       _buildPasswordField(
                         controller: newPasswordController,
-                        label: "كلمة المرور الجديدة",
+                        label: "new_password_label".tr(),
                         isVisible: isNewVisible,
-                        onVisibilityToggle: () => setState(() => isNewVisible = !isNewVisible),
+                        onVisibilityToggle:
+                            () => setState(() => isNewVisible = !isNewVisible),
                         validator: _validateNewPassword,
                         showStrengthIndicator: true,
                       ),
-                      
+
                       SizedBox(height: isTablet ? 32 : 24),
-                      
+
                       _buildPasswordField(
                         controller: confirmPasswordController,
-                        label: "تأكيد كلمة المرور الجديدة",
+                        label: "confirm_new_password_label".tr(),
                         isVisible: isConfirmVisible,
-                        onVisibilityToggle: () => setState(() => isConfirmVisible = !isConfirmVisible),
+                        onVisibilityToggle:
+                            () => setState(
+                              () => isConfirmVisible = !isConfirmVisible,
+                            ),
                         validator: _validateConfirmPassword,
                       ),
-                      
+
                       SizedBox(height: isTablet ? 30 : 20),
-                      
-                      // Security Tips
+
+                      // Password Tips
                       Container(
                         padding: EdgeInsets.all(isTablet ? 20 : 16),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 16 : 12,
+                          ),
                           border: Border.all(color: Colors.blue.shade200),
                         ),
                         child: Column(
@@ -860,13 +898,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             Row(
                               children: [
                                 Icon(
-                                  Icons.tips_and_updates, 
-                                  color: Colors.blue.shade700, 
+                                  Icons.tips_and_updates,
+                                  color: Colors.blue.shade700,
                                   size: isTablet ? 24 : 20,
                                 ),
                                 SizedBox(width: isTablet ? 12 : 8),
                                 Text(
-                                  "نصائح لكلمة مرور قوية:",
+                                  "password_tips_title".tr(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue.shade700,
@@ -877,7 +915,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             ),
                             SizedBox(height: isTablet ? 12 : 8),
                             Text(
-                              "• استخدم 8 أحرف على الأقل\n• امزج بين الأحرف الكبيرة والصغيرة\n• أضف أرقام ورموز خاصة\n• تجنب المعلومات الشخصية",
+                              "password_tips_content".tr(),
                               style: TextStyle(
                                 color: Colors.blue.shade600,
                                 fontSize: isTablet ? 14 : 12,
@@ -887,9 +925,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                           ],
                         ),
                       ),
-                      
+
                       SizedBox(height: isTablet ? 50 : 40),
-                      
+
                       // Save Button
                       Container(
                         width: double.infinity,
@@ -900,7 +938,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
-                          borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 20 : 16,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withOpacity(0.4),
@@ -915,40 +955,43 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                              borderRadius: BorderRadius.circular(
+                                isTablet ? 20 : 16,
+                              ),
                             ),
                           ),
-                          child: isLoading
-                              ? SizedBox(
-                                  width: isTablet ? 28 : 24,
-                                  height: isTablet ? 28 : 24,
-                                  child: const CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.security, 
+                          child:
+                              isLoading
+                                  ? SizedBox(
+                                    width: isTablet ? 28 : 24,
+                                    height: isTablet ? 28 : 24,
+                                    child: const CircularProgressIndicator(
                                       color: Colors.white,
-                                      size: isTablet ? 28 : 24,
+                                      strokeWidth: 2,
                                     ),
-                                    SizedBox(width: isTablet ? 16 : 12),
-                                    Text(
-                                      "حفظ التغييرات",
-                                      style: TextStyle(
+                                  )
+                                  : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.security,
                                         color: Colors.white,
-                                        fontSize: isTablet ? 18 : 16,
-                                        fontWeight: FontWeight.bold,
+                                        size: isTablet ? 28 : 24,
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                      SizedBox(width: isTablet ? 16 : 12),
+                                      Text(
+                                        "save_changes".tr(),
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isTablet ? 18 : 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                         ),
                       ),
-                      
+
                       SizedBox(height: isTablet ? 30 : 20),
                     ],
                   ),

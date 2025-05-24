@@ -1,6 +1,8 @@
 import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AccountSignUpPage extends StatefulWidget {
   const AccountSignUpPage({super.key});
@@ -36,7 +38,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                       children: [
                         SizedBox(height: height * 0.05),
 
-                        // اللوجو
+                        // Logo
                         Center(
                           child: Image.asset(
                             'assets/images/logo.png',
@@ -47,10 +49,10 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
 
                         SizedBox(height: height * 0.04),
 
-                        // العنوان
-                        const Text(
-                          'إنشاء حساب',
-                          style: TextStyle(
+                        // Title
+                        Text(
+                          'create_account'.tr(),
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -66,14 +68,14 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
 
                         // Email
                         _buildInput(
-                          hint: 'Example@Gmail.com',
+                          hint: 'email_hint'.tr(),
                           icon: Icons.email_outlined,
                         ),
                         SizedBox(height: height * 0.03),
 
                         // Password
                         _buildInput(
-                          hint: '**********',
+                          hint: 'password_hint'.tr(),
                           icon: Icons.lock_outline,
                           obscure: !_isPasswordVisible,
                           isPassword: true,
@@ -87,7 +89,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
 
                         // Confirm Password
                         _buildInput(
-                          hint: '**********',
+                          hint: 'confirm_password_hint'.tr(),
                           icon: Icons.lock_outline,
                           obscure: !_isConfirmVisible,
                           isPassword: true,
@@ -99,13 +101,13 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                         ),
                         SizedBox(height: height * 0.06),
 
-                        // زر الإنشاء
+                        // Submit Button
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () {
-                              // تنفيذ الإنشاء
+                              context.go('/confirm_signup_page');
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.secondary,
@@ -113,15 +115,48 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text(
-                              'Submit',
-                              style: TextStyle(
+                            child: Text(
+                              'submit'.tr(),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                context.go('/signup');
+                              },
+                              child: Row(
+                                children: [
+                                  const CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: AppColors.secondary,
+                                    child: Icon(
+                                      Icons.arrow_back,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'back'.tr(),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 20),
@@ -149,16 +184,20 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
-        suffixIcon: isPassword
-            ? GestureDetector(
-                onTap: toggleVisibility,
-                child: Icon(
-                  obscure ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey,
-                ),
-              )
-            : null,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        suffixIcon:
+            isPassword
+                ? GestureDetector(
+                  onTap: toggleVisibility,
+                  child: Icon(
+                    obscure ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                )
+                : null,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: AppColors.primary),

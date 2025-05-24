@@ -1,14 +1,15 @@
 import 'package:application/models/post.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class BidBottomSheet extends StatefulWidget {
   final VoidCallback onBidPlaced;
-  final Post post; // 🔥 أضف هذا
+  final Post post;
 
   const BidBottomSheet({
     Key? key,
     required this.onBidPlaced,
-    required this.post, // ⬅️ ضفها هون
+    required this.post,
   }) : super(key: key);
 
   @override
@@ -26,22 +27,23 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
   }
 
   void _confirmBid() {
-    widget.onBidPlaced(); // 🔁 إعادة تشغيل المؤقت
-    Navigator.pop(context); // إغلاق bottom sheet
+    widget.onBidPlaced();
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final currentBid = widget.post.currentBid;
     final bidStep = widget.post.bid_step;
-
     final minBid = currentBid + bidStep;
+
     final bidOptions = [
       minBid,
       currentBid + bidStep * 2,
       currentBid + bidStep * 3,
       currentBid + bidStep * 4,
     ];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
@@ -60,30 +62,30 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          const Text(
-            "ضع مزايدتك",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            'place_bid'.tr(),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           _buildBidSummary(),
           const SizedBox(height: 20),
-          const Text(
-            "اختر قيمة المزايدة",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          Text(
+            'choose_bid_value'.tr(),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-
           Wrap(
             spacing: 10,
             runSpacing: 10,
             alignment: WrapAlignment.center,
             children:
-                bidOptions.map((bid) {
-                  return _buildBidOption("NIS ${bid.toStringAsFixed(2)}");
-                }).toList(),
+                bidOptions
+                    .map(
+                      (bid) => _buildBidOption("NIS ${bid.toStringAsFixed(2)}"),
+                    )
+                    .toList(),
           ),
-
           const SizedBox(height: 20),
           _buildCustomBidField(),
           const SizedBox(height: 20),
@@ -100,14 +102,17 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
               backgroundColor: Colors.teal,
               foregroundColor: Colors.white,
             ),
-            child: const Text(
-              "تأكيد المزايدة",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: Text(
+              'confirm_bid'.tr(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("إلغاء", style: TextStyle(color: Colors.grey.shade700)),
+            child: Text(
+              'cancel'.tr(),
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
           ),
         ],
       ),
@@ -131,9 +136,9 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "المزايدة الحالية",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                Text(
+                  'current_bid'.tr(),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 Text(
                   "NIS ${currentBid.toStringAsFixed(2)}",
@@ -150,9 +155,9 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
-                  "الحد الأدنى للمزايدة",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                Text(
+                  'min_bid'.tr(),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 Text(
                   "NIS ${minBid.toStringAsFixed(2)}",
@@ -178,7 +183,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
       onSelected: (_) {
         setState(() {
           selectedBidValue = value;
-          _customBidController.clear(); // تفريغ الحقل المخصص عند اختيار قيمة
+          _customBidController.clear();
         });
       },
       backgroundColor: Colors.grey.shade200,
@@ -199,7 +204,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
       child: TextField(
         controller: _customBidController,
         decoration: InputDecoration(
-          hintText: "أدخل قيمة مخصصة",
+          hintText: 'custom_value'.tr(),
           prefixIcon: const Icon(
             Icons.monetization_on_outlined,
             color: Colors.teal,
@@ -212,7 +217,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
         textAlign: TextAlign.center,
         onChanged: (_) {
           setState(() {
-            selectedBidValue = null; // إزالة الاختيار عند الكتابة
+            selectedBidValue = null;
           });
         },
       ),
@@ -233,7 +238,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "بمجرد تأكيد المزايدة، لا يمكن التراجع عنها. تأكد من قيمة المزايدة قبل المتابعة.",
+              'bid_warning'.tr(),
               style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
             ),
           ),

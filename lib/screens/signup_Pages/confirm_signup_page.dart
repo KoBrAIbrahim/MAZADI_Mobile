@@ -1,5 +1,8 @@
+import 'package:application/main.dart';
 import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../constants/app_colors.dart';
 
 class ConfirmSignUpPage extends StatefulWidget {
@@ -35,7 +38,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                       children: [
                         SizedBox(height: height * 0.05),
 
-                        // اللوجو
+                        // Logo
                         Center(
                           child: Image.asset(
                             'assets/images/logo.png',
@@ -46,9 +49,12 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
 
                         SizedBox(height: height * 0.04),
 
-                        const Text(
-                          'إنشاء حساب',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        Text(
+                          'signup.title'.tr(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Container(
@@ -59,19 +65,39 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
 
                         SizedBox(height: height * 0.04),
 
-                        _buildField(label: 'Full Name', hint: 'AAA BBB', icon: Icons.person),
-                        const SizedBox(height: 16),
-                        _buildField(label: 'Phone', hint: '+00 000-0000-000', icon: Icons.phone),
-                        const SizedBox(height: 16),
-                        _buildField(label: 'City', hint: 'رام الله', icon: Icons.location_city),
-                        const SizedBox(height: 16),
-                        _buildField(label: 'Gender', hint: 'Female', icon: Icons.person_outline),
-                        const SizedBox(height: 16),
-                        _buildField(label: 'Email', hint: 'Example@Gmail.com', icon: Icons.email),
+                        _buildField(
+                          label: 'signup.fields.fullName'.tr(),
+                          hint: 'signup.hints.fullName'.tr(),
+                          icon: Icons.person,
+                        ),
                         const SizedBox(height: 16),
                         _buildField(
-                          label: 'Password',
-                          hint: '**********',
+                          label: 'signup.fields.phone'.tr(),
+                          hint: 'signup.hints.phone'.tr(),
+                          icon: Icons.phone,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: 'signup.fields.city'.tr(),
+                          hint: 'signup.hints.city'.tr(),
+                          icon: Icons.location_city,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: 'signup.fields.gender'.tr(),
+                          hint: 'signup.hints.gender'.tr(),
+                          icon: Icons.person_outline,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: 'signup.fields.email'.tr(),
+                          hint: 'signup.hints.email'.tr(),
+                          icon: Icons.email,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: 'signup.fields.password'.tr(),
+                          hint: 'signup.hints.password'.tr(),
                           icon: Icons.lock,
                           obscure: _obscurePassword,
                           isPassword: true,
@@ -79,13 +105,13 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
 
                         const SizedBox(height: 30),
 
-                        // زر التسجيل
+                        // Sign up button
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () {
-                              // تنفيذ التسجيل
+                              context.go('/home_page', extra: posts);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.secondary,
@@ -93,9 +119,9 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text(
-                              'Sign up',
-                              style: TextStyle(
+                            child: Text(
+                              'signup.button'.tr(),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -157,19 +183,20 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
               focusedBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
-              suffixIcon: isPassword
-                  ? IconButton(
-                      icon: Icon(
-                        obscure ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    )
-                  : null,
+              suffixIcon:
+                  isPassword
+                      ? IconButton(
+                        icon: Icon(
+                          obscure ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      )
+                      : null,
             ),
           ),
         ),

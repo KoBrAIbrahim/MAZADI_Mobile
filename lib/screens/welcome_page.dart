@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/app_colors.dart';
 import '../widgets/backgorund/logo_header.dart';
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 
 class StartupPage extends StatefulWidget {
   const StartupPage({super.key});
@@ -26,32 +28,38 @@ class _StartupPageState extends State<StartupPage>
       vsync: this,
     );
 
-    _fadeInAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.2, 0.8, curve: Curves.easeOut),
-    ));
+    _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.2, 0.8, curve: Curves.easeOut),
+      ),
+    );
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.2, 0.7, curve: Curves.easeOut),
-    ));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOut),
+      ),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.6, 1.0, curve: Curves.elasticOut),
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.6, 1.0, curve: Curves.elasticOut),
+      ),
+    );
 
     Timer(const Duration(milliseconds: 200), () {
       _controller.forward();
+    });
+
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        context.go('/login');
+      }
     });
   }
 
@@ -99,7 +107,7 @@ class _StartupPageState extends State<StartupPage>
                       children: [
                         SizedBox(height: height * 0.02),
                         Text(
-                          'أهلاً بك',
+                          'welcome'.tr(),
                           style: TextStyle(
                             fontSize: width * 0.13,
                             fontWeight: FontWeight.bold,
@@ -108,7 +116,7 @@ class _StartupPageState extends State<StartupPage>
                         ),
                         SizedBox(height: height * 0.025),
                         Text(
-                          'يسعدنا استمرارك معنا\nاضغط للمتابعة واستكشاف المزيد من مزادات مزادي المميزة',
+                          'startup_description'.tr(),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: const Color.fromARGB(242, 255, 255, 255),
@@ -120,127 +128,10 @@ class _StartupPageState extends State<StartupPage>
                     ),
                   ),
                 ),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: width * 0.04,
-                      bottom: height * 0.04,
-                    ),
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: _PulseAnimationButton(width: width),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PulseAnimationButton extends StatefulWidget {
-  final double width;
-  const _PulseAnimationButton({Key? key, required this.width}) : super(key: key);
-
-  @override
-  _PulseAnimationButtonState createState() => _PulseAnimationButtonState();
-}
-
-class _PulseAnimationButtonState extends State<_PulseAnimationButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
-
-    _pulseController.repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        Navigator.of(context).push(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) {
-              return const Scaffold(body: Center(child: Text('Next Screen')));
-            },
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
-              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-              var offsetAnimation = animation.drive(tween);
-              return SlideTransition(position: offsetAnimation, child: child);
-            },
-          ),
-        );
-      },
-      child: AnimatedBuilder(
-        animation: _pulseAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _pulseAnimation.value,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'أكمل',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: widget.width * 0.045,
-                  ),
-                ),
-                SizedBox(width: widget.width * 0.02),
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  padding: EdgeInsets.all(widget.width * 0.025),
-                  child: Icon(
-                    Icons.arrow_forward,
-                    color: AppColors.primary,
-                    size: widget.width * 0.05,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
