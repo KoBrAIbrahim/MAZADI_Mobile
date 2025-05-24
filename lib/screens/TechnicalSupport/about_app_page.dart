@@ -3,6 +3,7 @@ import 'package:application/constants/app_colors.dart';
 import 'package:application/screens/Main_User_Pages.dart/dashboard.dart/dashboard_page.dart';
 import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:application/widgets/Header/header_build.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AboutAppPage extends StatefulWidget {
   const AboutAppPage({super.key});
@@ -18,7 +19,7 @@ class _AboutAppPageState extends State<AboutAppPage>
   late AnimationController _heroController;
   late AnimationController _cardController;
   late AnimationController _statsController;
-  
+
   late Animation<Offset> _drawerHintAnimation;
   late Animation<double> _heroAnimation;
   late Animation<double> _cardFadeAnimation;
@@ -51,10 +52,7 @@ class _AboutAppPageState extends State<AboutAppPage>
       duration: const Duration(milliseconds: 1200),
     );
 
-    _heroAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _heroAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _heroController, curve: Curves.elasticOut),
     );
 
@@ -67,9 +65,7 @@ class _AboutAppPageState extends State<AboutAppPage>
     _cardFadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(
-      CurvedAnimation(parent: _cardController, curve: Curves.easeOut),
-    );
+    ).animate(CurvedAnimation(parent: _cardController, curve: Curves.easeOut));
 
     _cardSlideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
@@ -84,10 +80,7 @@ class _AboutAppPageState extends State<AboutAppPage>
       duration: const Duration(milliseconds: 1000),
     );
 
-    _statsAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _statsAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _statsController, curve: Curves.bounceOut),
     );
 
@@ -107,10 +100,10 @@ class _AboutAppPageState extends State<AboutAppPage>
   void _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 300));
     _heroController.forward();
-    
+
     await Future.delayed(const Duration(milliseconds: 200));
     _cardController.forward();
-    
+
     await Future.delayed(const Duration(milliseconds: 300));
     _statsController.forward();
   }
@@ -129,13 +122,14 @@ class _AboutAppPageState extends State<AboutAppPage>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
+     bool isRTL = context.locale.languageCode == 'ar';
 
     return Scaffold(
       key: _scaffoldKey,
       drawer: AuctionDrawer(selectedItem: 'about'),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: buildHeader(screenSize, isTablet, 'حول التطبيق'),
+        child: buildHeader(screenSize, isTablet, 'about_app'.tr()),
       ),
       bottomNavigationBar: LowerBar(
         currentIndex: 0,
@@ -167,10 +161,7 @@ class _AboutAppPageState extends State<AboutAppPage>
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white,
-                  AppColors.primary.withOpacity(0.02),
-                ],
+                colors: [Colors.white, AppColors.primary.withOpacity(0.02)],
               ),
             ),
           ),
@@ -182,32 +173,32 @@ class _AboutAppPageState extends State<AboutAppPage>
               children: [
                 // Hero Section
                 _buildHeroSection(screenSize),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Feature Cards
                 _buildFeatureCards(),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Stats Section
                 _buildStatsSection(),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // App Info Card
                 _buildAppInfoCard(),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Team Section
                 _buildTeamSection(),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Contact Section
                 _buildContactSection(),
-                
+
                 const SizedBox(height: 100),
               ],
             ),
@@ -216,14 +207,17 @@ class _AboutAppPageState extends State<AboutAppPage>
           // Drawer Hint
           Positioned(
             top: MediaQuery.of(context).size.height / 2 - 16,
-            left: Directionality.of(context) == TextDirection.rtl ? null : 0,
-            right: Directionality.of(context) == TextDirection.rtl ? 0 : null,
+            left: isRTL ? null : 0,
+            right: isRTL ? 0 : null,
             child: SlideTransition(
               position: _drawerHintAnimation,
               child: GestureDetector(
                 onTap: () => _scaffoldKey.currentState?.openDrawer(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.12),
                     borderRadius: const BorderRadius.horizontal(
@@ -243,9 +237,9 @@ class _AboutAppPageState extends State<AboutAppPage>
                     ],
                   ),
                   child: Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.arrow_forward_ios_rounded,
+                    isRTL
+                        ? Icons.arrow_forward
+                        : Icons.arrow_forward,
                     size: 14,
                     color: AppColors.primary,
                   ),
@@ -269,10 +263,7 @@ class _AboutAppPageState extends State<AboutAppPage>
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primary.withOpacity(0.8),
-                ],
+                colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -293,16 +284,12 @@ class _AboutAppPageState extends State<AboutAppPage>
                     color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.apps,
-                    size: 50,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.apps, size: 50, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'AuctionApp',
-                  style: TextStyle(
+                Text(
+                  'app_name'.tr(),
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -310,7 +297,7 @@ class _AboutAppPageState extends State<AboutAppPage>
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'منصة المزادات الذكية',
+                  'app_tagline'.tr(),
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withOpacity(0.9),
@@ -328,20 +315,20 @@ class _AboutAppPageState extends State<AboutAppPage>
     final features = [
       {
         'icon': Icons.gavel,
-        'title': 'مزادات متقدمة',
-        'description': 'نظام مزادات ذكي مع إشعارات فورية',
+        'title': 'advanced_auctions'.tr(),
+        'description': 'smart_auction_system'.tr(),
         'color': const Color(0xFF6366F1),
       },
       {
         'icon': Icons.security,
-        'title': 'أمان عالي',
-        'description': 'حماية البيانات بأحدث التقنيات',
+        'title': 'high_security'.tr(),
+        'description': 'data_protection'.tr(),
         'color': const Color(0xFF10B981),
       },
       {
         'icon': Icons.speed,
-        'title': 'سرعة فائقة',
-        'description': 'تجربة سريعة وسلسة',
+        'title': 'ultra_speed'.tr(),
+        'description': 'fast_experience'.tr(),
         'color': const Color(0xFFF59E0B),
       },
     ];
@@ -355,9 +342,9 @@ class _AboutAppPageState extends State<AboutAppPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'المميزات الرئيسية',
-                style: TextStyle(
+              Text(
+                'key_features'.tr(),
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1F2937),
@@ -367,7 +354,7 @@ class _AboutAppPageState extends State<AboutAppPage>
               ...features.asMap().entries.map((entry) {
                 int index = entry.key;
                 Map<String, dynamic> feature = entry.value;
-                
+
                 return AnimatedContainer(
                   duration: Duration(milliseconds: 300 + (index * 100)),
                   margin: const EdgeInsets.only(bottom: 15),
@@ -436,10 +423,9 @@ class _AboutAppPageState extends State<AboutAppPage>
 
   Widget _buildStatsSection() {
     final stats = [
-      {'number': '1000+', 'label': 'مستخدم نشط'},
-      {'number': '500+', 'label': 'مزاد مكتمل'},
-      {'number': '99%', 'label': 'رضا العملاء'},
-      {'number': '24/7', 'label': 'دعم فني'},
+      {'number': '1000+', 'label': 'active_users'.tr()},
+      {'number': '500+', 'label': 'completed_auctions'.tr()},
+      {'number': '24/7', 'label': 'technical_support'.tr()},
     ];
 
     return AnimatedBuilder(
@@ -449,11 +435,8 @@ class _AboutAppPageState extends State<AboutAppPage>
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(25),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF667EEA),
-                const Color(0xFF764BA2),
-              ],
+            gradient: const LinearGradient(
+              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -468,9 +451,9 @@ class _AboutAppPageState extends State<AboutAppPage>
           ),
           child: Column(
             children: [
-              const Text(
-                'إحصائيات التطبيق',
-                style: TextStyle(
+              Text(
+                'app_statistics'.tr(),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -479,32 +462,33 @@ class _AboutAppPageState extends State<AboutAppPage>
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: stats.map((stat) {
-                  return Transform.scale(
-                    scale: _statsAnimation.value,
-                    child: Column(
-                      children: [
-                        Text(
-                          stat['number']!,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                children:
+                    stats.map((stat) {
+                      return Transform.scale(
+                        scale: _statsAnimation.value,
+                        child: Column(
+                          children: [
+                            Text(
+                              stat['number']!,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              stat['label']!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.8),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          stat['label']!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.8),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
             ],
           ),
@@ -548,9 +532,9 @@ class _AboutAppPageState extends State<AboutAppPage>
                   ),
                 ),
                 const SizedBox(width: 15),
-                const Text(
-                  'معلومات التطبيق',
-                  style: TextStyle(
+                Text(
+                  'app_information'.tr(),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1F2937),
@@ -559,9 +543,9 @@ class _AboutAppPageState extends State<AboutAppPage>
               ],
             ),
             const SizedBox(height: 20),
-            const Text(
-              'هذا التطبيق يتيح للمستخدمين شراء وبيع العناصر من خلال نظام مزادات متقدم وسهل الاستخدام. يوفر تجربة مستخدم حديثة مع دعم للتخصيص الكامل والمظهر الداكن.',
-              style: TextStyle(
+            Text(
+              'app_description'.tr(),
+              style: const TextStyle(
                 fontSize: 16,
                 height: 1.6,
                 color: Color(0xFF4B5563),
@@ -582,9 +566,9 @@ class _AboutAppPageState extends State<AboutAppPage>
                     size: 20,
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'الإصدار: 1.0.0',
-                    style: TextStyle(
+                  Text(
+                    'app_version'.tr(),
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF374151),
@@ -632,9 +616,9 @@ class _AboutAppPageState extends State<AboutAppPage>
                 ),
               ),
               const SizedBox(width: 15),
-              const Text(
-                'فريق التطوير',
-                style: TextStyle(
+              Text(
+                'development_team'.tr(),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1F2937),
@@ -643,9 +627,9 @@ class _AboutAppPageState extends State<AboutAppPage>
             ],
           ),
           const SizedBox(height: 20),
-          const Text(
-            'تم تطوير هذا التطبيق بواسطة فريق AuctionApp المتخصص في تطوير تطبيقات الجوال والمنصات الرقمية.',
-            style: TextStyle(
+          Text(
+            'team_description'.tr(),
+            style: const TextStyle(
               fontSize: 16,
               height: 1.6,
               color: Color(0xFF4B5563),
@@ -663,17 +647,17 @@ class _AboutAppPageState extends State<AboutAppPage>
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.emoji_events,
                   color: Color(0xFFF59E0B),
                   size: 20,
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Text(
-                  'أفضل تطبيق مزادات لعام 2024',
-                  style: TextStyle(
+                  'best_app_award'.tr(),
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF374151),
@@ -692,11 +676,8 @@ class _AboutAppPageState extends State<AboutAppPage>
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1F2937),
-            const Color(0xFF374151),
-          ],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F2937), Color(0xFF374151)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -705,17 +686,13 @@ class _AboutAppPageState extends State<AboutAppPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(
-                Icons.support_agent,
-                color: Colors.white,
-                size: 24,
-              ),
-              SizedBox(width: 15),
+              const Icon(Icons.support_agent, color: Colors.white, size: 24),
+              const SizedBox(width: 15),
               Text(
-                'تواصل معنا',
-                style: TextStyle(
+                'contact_us'.tr(),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -725,7 +702,7 @@ class _AboutAppPageState extends State<AboutAppPage>
           ),
           const SizedBox(height: 20),
           Text(
-            'نحن هنا لمساعدتك! تواصل معنا في أي وقت',
+            'contact_description'.tr(),
             style: TextStyle(
               fontSize: 16,
               color: Colors.white.withOpacity(0.8),
@@ -735,8 +712,8 @@ class _AboutAppPageState extends State<AboutAppPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildContactButton(Icons.email, 'البريد الإلكتروني'),
-              _buildContactButton(Icons.phone, 'الهاتف'),
+              _buildContactButton(Icons.email, 'email_contact'.tr()),
+              _buildContactButton(Icons.phone, 'phone_contact'.tr()),
             ],
           ),
         ],
@@ -755,24 +732,15 @@ class _AboutAppPageState extends State<AboutAppPage>
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(icon, color: Colors.white, size: 20),
             const SizedBox(height: 5),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.white),
             ),
           ],
         ),

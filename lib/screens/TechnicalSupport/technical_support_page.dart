@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/screens/Main_User_Pages.dart/dashboard.dart/dashboard_page.dart';
 import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:application/widgets/Header/header_build.dart';
+import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class TechnicalSupportPage extends StatefulWidget {
   const TechnicalSupportPage({super.key});
@@ -16,67 +17,70 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final PageController _pageController = PageController();
   final TextEditingController _messageController = TextEditingController();
-  
+
   late AnimationController _drawerHintController;
   late AnimationController _floatingController;
   late AnimationController _pulseController;
   late Animation<Offset> _drawerHintAnimation;
   late Animation<double> _floatingAnimation;
   late Animation<double> _pulseAnimation;
-  
+
   int _currentPage = 0;
   bool _isExpanded = false;
   String _selectedCategory = '';
 
-  final List<SupportCategory> _categories = [
-    SupportCategory(
-      icon: Icons.bug_report,
-      title: 'الإبلاغ عن خطأ',
-      description: 'أبلغ عن المشاكل التقنية',
-      color: Colors.red,
-      gradient: [Colors.red.shade400, Colors.red.shade600],
-    ),
-    SupportCategory(
-      icon: Icons.help_outline,
-      title: 'المساعدة العامة',
-      description: 'أسئلة حول استخدام التطبيق',
-      color: Colors.blue,
-      gradient: [Colors.blue.shade400, Colors.blue.shade600],
-    ),
-    SupportCategory(
-      icon: Icons.account_circle,
-      title: 'مشاكل الحساب',
-      description: 'مساعدة في إدارة الحساب',
-      color: Colors.green,
-      gradient: [Colors.green.shade400, Colors.green.shade600],
-    ),
-    SupportCategory(
-      icon: Icons.payment,
-      title: 'الدفع والفواتير',
-      description: 'مساعدة في المدفوعات',
-      color: Colors.orange,
-      gradient: [Colors.orange.shade400, Colors.orange.shade600],
-    ),
-  ];
-
-  final List<FAQItem> _faqItems = [
-    FAQItem(
-      question: 'كيف يمكنني إنشاء حساب جديد؟',
-      answer: 'يمكنك إنشاء حساب جديد من خلال النقر على زر "تسجيل جديد" في الصفحة الرئيسية وملء المعلومات المطلوبة.',
-    ),
-    FAQItem(
-      question: 'كيف يمكنني استرداد كلمة المرور؟',
-      answer: 'انقر على "نسيت كلمة المرور" في صفحة تسجيل الدخول وسنرسل لك رابط الاسترداد عبر البريد الإلكتروني.',
-    ),
-    FAQItem(
-      question: 'هل يمكنني تغيير معلومات الملف الشخصي؟',
-      answer: 'نعم، يمكنك تحديث معلوماتك الشخصية من خلال الذهاب إلى الإعدادات ثم الملف الشخصي.',
-    ),
-  ];
+  late List<SupportCategory> _categories;
+  late List<FAQItem> _faqItems;
 
   @override
   void initState() {
     super.initState();
+
+    _categories = [
+      SupportCategory(
+        icon: Icons.bug_report,
+        title: tr('support.categories.bug.title'),
+        description: tr('support.categories.bug.description'),
+        color: Colors.red,
+        gradient: [Colors.red.shade400, Colors.red.shade600],
+      ),
+      SupportCategory(
+        icon: Icons.help_outline,
+        title: tr('support.categories.help.title'),
+        description: tr('support.categories.help.description'),
+        color: Colors.blue,
+        gradient: [Colors.blue.shade400, Colors.blue.shade600],
+      ),
+      SupportCategory(
+        icon: Icons.account_circle,
+        title: tr('support.categories.account.title'),
+        description: tr('support.categories.account.description'),
+        color: Colors.green,
+        gradient: [Colors.green.shade400, Colors.green.shade600],
+      ),
+      SupportCategory(
+        icon: Icons.payment,
+        title: tr('support.categories.payment.title'),
+        description: tr('support.categories.payment.description'),
+        color: Colors.orange,
+        gradient: [Colors.orange.shade400, Colors.orange.shade600],
+      ),
+    ];
+
+    _faqItems = [
+      FAQItem(
+        question: tr('support.faq.questions.q1'),
+        answer: tr('support.faq.questions.a1'),
+      ),
+      FAQItem(
+        question: tr('support.faq.questions.q2'),
+        answer: tr('support.faq.questions.a2'),
+      ),
+      FAQItem(
+        question: tr('support.faq.questions.q3'),
+        answer: tr('support.faq.questions.a3'),
+      ),
+    ];
 
     _drawerHintController = AnimationController(
       vsync: this,
@@ -96,13 +100,17 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
     _drawerHintAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: const Offset(0.1, 0),
-    ).animate(CurvedAnimation(parent: _drawerHintController, curve: Curves.easeInOut));
+    ).animate(
+      CurvedAnimation(parent: _drawerHintController, curve: Curves.easeInOut),
+    );
 
-    _floatingAnimation = Tween<double>(begin: -5, end: 5)
-        .animate(CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut));
+    _floatingAnimation = Tween<double>(begin: -5, end: 5).animate(
+      CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
+    );
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1)
-        .animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -119,13 +127,14 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
+    bool isRTL = context.locale.languageCode == 'ar';
 
     return Scaffold(
       key: _scaffoldKey,
       drawer: AuctionDrawer(selectedItem: 'support'),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: buildHeader(screenSize, isTablet, 'الدعم الفني'),
+        child: buildHeader(screenSize, isTablet, tr('support.title')),
       ),
       backgroundColor: Colors.grey.shade50,
       bottomNavigationBar: LowerBar(
@@ -136,7 +145,6 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
       ),
       body: Stack(
         children: [
-          // Background decoration
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -150,15 +158,11 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               ),
             ),
           ),
-          
+
           PageView(
             controller: _pageController,
             onPageChanged: (index) => setState(() => _currentPage = index),
-            children: [
-              _buildContactPage(),
-              _buildFAQPage(),
-              
-            ],
+            children: [_buildContactPage(), _buildFAQPage()],
           ),
 
           Positioned(
@@ -167,16 +171,18 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
             right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(2, (index) => 
-                AnimatedContainer(
+              children: List.generate(
+                2,
+                (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   height: 8,
                   width: 15,
                   decoration: BoxDecoration(
-                    color: _currentPage == index 
-                        ? AppColors.primary 
-                        : AppColors.primary.withOpacity(0.3),
+                    color:
+                        _currentPage == index
+                            ? AppColors.primary
+                            : AppColors.primary.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -185,17 +191,23 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
           ),
           Positioned(
             top: MediaQuery.of(context).size.height / 2 - 16,
-            left: Directionality.of(context) == TextDirection.rtl ? null : 0,
-            right: Directionality.of(context) == TextDirection.rtl ? 0 : null,
+            left: isRTL ? null : 0,
+            right: isRTL ? 0 : null,
             child: SlideTransition(
               position: _drawerHintAnimation,
               child: GestureDetector(
                 onTap: () => _scaffoldKey.currentState?.openDrawer(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppColors.primary.withOpacity(0.8), AppColors.primary],
+                      colors: [
+                        AppColors.primary.withOpacity(0.8),
+                        AppColors.primary,
+                      ],
                     ),
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(15),
@@ -210,9 +222,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                     ],
                   ),
                   child: Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.arrow_forward_ios_rounded,
+                    isRTL
+                        ? Icons.arrow_forward
+                        : Icons.arrow_forward,
                     size: 16,
                     color: Colors.white,
                   ),
@@ -224,7 +236,6 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
       ),
     );
   }
-
 
   Widget _buildFAQPage() {
     return SingleChildScrollView(
@@ -242,16 +253,12 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.quiz,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                child: const Icon(Icons.quiz, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
-              const Text(
-                'الأسئلة الشائعة',
-                style: TextStyle(
+              Text(
+                tr('support.faq.title'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -348,9 +355,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                 ),
               ),
               const SizedBox(width: 16),
-              const Text(
-                'تواصل معنا',
-                style: TextStyle(
+              Text(
+                tr('support.contact.title'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -362,22 +369,22 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
           // Contact methods
           _buildContactMethod(
             icon: Icons.email_outlined,
-            title: 'البريد الإلكتروني',
-            subtitle: 'support@example.com',
+            title: tr('support.contact.methods.email.title'),
+            subtitle: tr('support.contact.methods.email.value'),
             color: Colors.red,
           ),
           const SizedBox(height: 16),
           _buildContactMethod(
             icon: Icons.phone_outlined,
-            title: 'الهاتف',
-            subtitle: '+970 59-000-0000',
+            title: tr('support.contact.methods.phone.title'),
+            subtitle: tr('support.contact.methods.phone.value'),
             color: Colors.green,
           ),
           const SizedBox(height: 16),
           _buildContactMethod(
             icon: Icons.access_time_outlined,
-            title: 'ساعات العمل',
-            subtitle: 'من 9 صباحًا إلى 5 مساءً',
+            title: tr('support.contact.methods.hours.title'),
+            subtitle: tr('support.contact.methods.hours.value'),
             color: Colors.orange,
           ),
 
@@ -400,9 +407,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'إرسال رسالة سريعة',
-                  style: TextStyle(
+                Text(
+                  tr('support.contact.message.title'),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -412,7 +419,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                   controller: _messageController,
                   maxLines: 4,
                   decoration: InputDecoration(
-                    hintText: 'اكتب رسالتك هنا...',
+                    hintText: tr('support.contact.message.placeholder'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Colors.grey.shade300),
@@ -430,7 +437,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                     onPressed: () {
                       // TODO: Send message logic
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('تم إرسال الرسالة بنجاح!')),
+                        SnackBar(
+                          content: Text(tr('support.contact.message.success')),
+                        ),
                       );
                       _messageController.clear();
                     },
@@ -441,9 +450,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'إرسال الرسالة',
-                      style: TextStyle(
+                    child: Text(
+                      tr('support.contact.message.button'),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -503,10 +512,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
             ],
           ),
@@ -527,15 +533,22 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: isActive 
-              ? LinearGradient(colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)])
-              : LinearGradient(colors: [Colors.white, Colors.grey.shade50]),
+          gradient:
+              isActive
+                  ? LinearGradient(
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.8),
+                    ],
+                  )
+                  : LinearGradient(colors: [Colors.white, Colors.grey.shade50]),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: isActive 
-                  ? AppColors.primary.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.2),
+              color:
+                  isActive
+                      ? AppColors.primary.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.2),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -571,8 +584,5 @@ class FAQItem {
   final String question;
   final String answer;
 
-  FAQItem({
-    required this.question,
-    required this.answer,
-  });
+  FAQItem({required this.question, required this.answer});
 }

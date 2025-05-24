@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:application/constants/app_colors.dart';
 import 'package:application/screens/Main_User_Pages.dart/home_page.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:application/models/post.dart';
-import 'package:intl/intl.dart';
 
 class DetailsPostPage extends StatefulWidget {
   final Post post;
@@ -16,7 +16,7 @@ class DetailsPostPage extends StatefulWidget {
   const DetailsPostPage({
     super.key,
     required this.post,
-    required this.pageType, // القيمة الافتراضية
+    required this.pageType,
   });
 
   @override
@@ -259,7 +259,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('تم حفظ التعديلات بنجاح!'),
+                        content: Text('changes_saved_successfully'.tr()),
                         backgroundColor:
                             Theme.of(context).colorScheme.secondary,
                         behavior: SnackBarBehavior.floating,
@@ -272,12 +272,11 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                         ),
                       ),
                     );
-                    // يمكنك هنا إرسال التعديلات إلى الخادم
                   },
                   icon: const Icon(Icons.save_alt_rounded),
-                  label: const Text('حفظ التعديلات'),
+                  label: Text('save_changes'.tr()),
                   style: ElevatedButton.styleFrom(
-                   backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -315,7 +314,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: FlexibleSpaceBar(
             title: Text(
-              'Auction Details',
+              'auction_details_title'.tr(),
               style: TextStyle(
                 color: isDark ? Colors.white : Colors.black87,
                 fontSize: 18,
@@ -494,7 +493,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   ),
                   SizedBox(width: 6),
                   Text(
-                    'Featured',
+                    'featured_label'.tr(),
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -522,21 +521,21 @@ class _DetailsPostPageState extends State<DetailsPostPage>
         children: [
           _buildTimerUnit(
             hours.toString().padLeft(2, '0'),
-            'HRS',
+            'timer_hours'.tr(),
             accentColor,
             isDark,
           ),
           _buildTimerSeparator(isDark),
           _buildTimerUnit(
             minutes.toString().padLeft(2, '0'),
-            'MIN',
+            'timer_minutes'.tr(),
             accentColor,
             isDark,
           ),
           _buildTimerSeparator(isDark),
           _buildTimerUnit(
             seconds.toString().padLeft(2, '0'),
-            'SEC',
+            'timer_seconds'.tr(),
             accentColor,
             isDark,
             isLast: true,
@@ -684,7 +683,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                       Icon(Icons.person, color: accentColor, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        "Seller: ${widget.post.sellerName}",
+                        "${'seller_label'.tr()}: ${widget.post.sellerName}",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -699,7 +698,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                       Icon(Icons.phone_android, color: accentColor, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        "WhatsApp: ${widget.post.sellerId}",
+                        "${'whatsapp_label'.tr()}: ${widget.post.sellerId}",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -775,9 +774,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : Colors.black87,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: InputBorder.none,
-              hintText: 'Enter title...',
+              hintText: 'enter_title_hint'.tr(),
             ),
           )
         else
@@ -833,7 +832,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             Icon(Icons.description_outlined, size: 18, color: accentColor),
             const SizedBox(width: 8),
             Text(
-              'Description',
+              'description_label'.tr(),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -857,7 +856,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               height: 1.4,
             ),
             decoration: InputDecoration(
-              hintText: 'Enter description...',
+              hintText: 'enter_description_hint'.tr(),
               hintStyle: TextStyle(
                 color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
               ),
@@ -978,7 +977,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                     child:
                         isMyPost
                             ? _editablePriceField(
-                              label: "Start Price",
+                              label: "start_price_label".tr(),
                               initialValue: widget.post.startPrice.toString(),
                               icon: Icons.monetization_on_outlined,
                               onChanged: (value) {
@@ -994,8 +993,8 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                             )
                             : _priceTile(
                               Icons.monetization_on_outlined,
-                              'Start Price',
-                              '${widget.post.startPrice} NIS',
+                              'start_price_label'.tr(),
+                              '${widget.post.startPrice} ${'currency_nis'.tr()}',
                               isDark,
                               accentColor,
                             ),
@@ -1009,7 +1008,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                     child:
                         isMyPost
                             ? _editablePriceField(
-                              label: "Bid Step",
+                              label: "bid_step_label".tr(),
                               initialValue: widget.post.bid_step.toString(),
                               icon: Icons.trending_up_rounded,
                               onChanged: (value) {
@@ -1025,8 +1024,8 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                             )
                             : _priceTile(
                               Icons.trending_up_rounded,
-                              'Bid Step',
-                              '${widget.post.bid_step} NIS',
+                              'bid_step_label'.tr(),
+                              '${widget.post.bid_step} ${'currency_nis'.tr()}',
                               isDark,
                               accentColor,
                             ),
@@ -1039,7 +1038,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               // Show post count as usual
               _priceTile(
                 Icons.gavel_rounded,
-                'Post # on Auction',
+                'post_number_auction'.tr(),
                 '#${widget.post.numberOfOnAuction}',
                 isDark,
                 accentColor,
@@ -1228,7 +1227,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   Icon(Icons.grid_view_rounded, size: 18, color: accentColor),
                   SizedBox(width: 8),
                   Text(
-                    'Similar Items',
+                    'similar_items_title'.tr(),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -1238,7 +1237,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                 ],
               ),
               Text(
-                'View All',
+                'view_all_label'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -1299,7 +1298,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Similar Item ${index + 1}',
+                  '${'similar_item_label'.tr()} ${index + 1}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -1310,7 +1309,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                 ),
                 SizedBox(height: 4),
                 Text(
-                  '$price NIS',
+                  '$price ${'currency_nis'.tr()}',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -1368,7 +1367,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Place Your Bid',
+                                  'place_bid_title'.tr(),
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -1407,7 +1406,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Current Bid:',
+                                        'current_bid_label'.tr(),
                                         style: TextStyle(
                                           fontSize: 16,
                                           color:
@@ -1417,7 +1416,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         ),
                                       ),
                                       Text(
-                                        '$_currentBid NIS',
+                                        '$_currentBid ${'currency_nis'.tr()}',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -1435,7 +1434,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Minimum Bid:',
+                                        'minimum_bid_label'.tr(),
                                         style: TextStyle(
                                           fontSize: 16,
                                           color:
@@ -1445,7 +1444,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         ),
                                       ),
                                       Text(
-                                        '${(currentBid + bidStep).toStringAsFixed(1)} NIS',
+                                        '${(currentBid + bidStep).toStringAsFixed(1)} ${'currency_nis'.tr()}',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -1467,7 +1466,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Select Bid Amount',
+                                    'select_bid_amount'.tr(),
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -1509,7 +1508,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                               : Colors.black87,
                                     ),
                                     decoration: InputDecoration(
-                                      labelText: 'Custom Bid Amount (NIS)',
+                                      labelText: 'custom_bid_amount_hint'.tr(),
                                       labelStyle: TextStyle(color: accentColor),
                                       prefixIcon: Icon(
                                         Icons.attach_money_rounded,
@@ -1557,7 +1556,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                       ),
                                     ),
                                     child: Text(
-                                      'Cancel',
+                                      'cancel_button'.tr(),
                                       style: TextStyle(
                                         color: accentColor,
                                         fontWeight: FontWeight.bold,
@@ -1579,7 +1578,12 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'Your bid of $_currentBid NIS has been placed!',
+                                            'bid_placed_success'.tr(
+                                              namedArgs: {
+                                                'amount': _currentBid,
+                                                'currency': 'currency_nis'.tr(),
+                                              },
+                                            ),
                                           ),
                                           backgroundColor: accentColor,
                                           behavior: SnackBarBehavior.floating,
@@ -1605,7 +1609,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                       ),
                                     ),
                                     child: Text(
-                                      'Place Bid',
+                                      'place_bid_button'.tr(),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -1636,7 +1640,14 @@ class _DetailsPostPageState extends State<DetailsPostPage>
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Your bid of $amount NIS has been placed!'),
+              content: Text(
+                'bid_placed_success'.tr(
+                  namedArgs: {
+                    'amount': amount.toString(),
+                    'currency': 'currency_nis'.tr(),
+                  },
+                ),
+              ),
               backgroundColor: accentColor,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -1656,7 +1667,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
           ),
           child: Center(
             child: Text(
-              '$amount NIS',
+              '$amount ${'currency_nis'.tr()}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/models/user.dart';
 import 'package:application/widgets/main_page/lower_bar_pages.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ProfilePage extends StatefulWidget {
   final User user;
@@ -33,7 +34,7 @@ class _ProfilePageState extends State<ProfilePage>
   late Animation<double> _profileCardAnimation;
   late Animation<double> _tabContentScaleAnimation;
 
-  final List<String> profileTabs = ["معلومات حسابي", "بطاقة إئتمان"];
+  final List<String> profileTabs = ["account_info".tr(), "credit_card".tr()];
 
   final List<IconData> profileTabIcons = [
     Icons.person_outline,
@@ -43,6 +44,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
+    _debugUserProperties();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -92,7 +94,9 @@ class _ProfilePageState extends State<ProfilePage>
     _animationController.forward();
     _tabContentController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
-      _profileCardController.forward();
+      if (mounted) {
+        _profileCardController.forward();
+      }
     });
 
     _drawerHintController = AnimationController(
@@ -106,6 +110,45 @@ class _ProfilePageState extends State<ProfilePage>
     ).animate(
       CurvedAnimation(parent: _drawerHintController, curve: Curves.easeInOut),
     );
+  }
+
+  String _getSafeStringValue(dynamic value, {String fallback = 'N/A'}) {
+    if (value == null) return fallback;
+
+    if (value is String) {
+      return value.isEmpty ? fallback : value;
+    } else if (value is Map<String, dynamic>) {
+      // Handle common map structures
+      return value['name']?.toString() ??
+          value['title']?.toString() ??
+          value['value']?.toString() ??
+          value.toString();
+    } else {
+      return value.toString();
+    }
+  }
+
+  void _debugUserProperties() {
+    print('=== User Properties Debug ===');
+    print(
+      'firstName type: ${widget.user.firstName.runtimeType} - value: ${widget.user.firstName}',
+    );
+    print(
+      'lastName type: ${widget.user.lastName.runtimeType} - value: ${widget.user.lastName}',
+    );
+    print(
+      'email type: ${widget.user.email.runtimeType} - value: ${widget.user.email}',
+    );
+    print(
+      'city type: ${widget.user.city.runtimeType} - value: ${widget.user.city}',
+    );
+    print(
+      'phoneNumber type: ${widget.user.phoneNumber.runtimeType} - value: ${widget.user.phoneNumber}',
+    );
+    print(
+      'gender type: ${widget.user.gender.runtimeType} - value: ${widget.user.gender}',
+    );
+    print('==============================');
   }
 
   @override
@@ -145,10 +188,12 @@ class _ProfilePageState extends State<ProfilePage>
     final isTablet = screenSize.width > 600;
     final isDesktop = screenSize.width > 1200;
     final maxWidth = isDesktop ? 1000.0 : double.infinity;
+    bool isRTL = context.locale.languageCode == 'ar';
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: AuctionDrawer(selectedItem: 'profile'),
+      drawer: AuctionDrawer(selectedItem: 'my_account'.tr()),
+
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Stack(
@@ -165,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage>
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
-                          buildHeader(screenSize, isTablet, "حسابي"),
+                          buildHeader(screenSize, isTablet, "my_account".tr()),
                           _buildAdvancedProfileCard(
                             screenSize,
                             isTablet,
@@ -192,16 +237,16 @@ class _ProfilePageState extends State<ProfilePage>
             ),
 
             Positioned(
-              top: MediaQuery.of(context).size.height / 2 - 16, // أصغر شوي
-              left: Directionality.of(context) == TextDirection.rtl ? null : 0,
-              right: Directionality.of(context) == TextDirection.rtl ? 0 : null,
+              top: MediaQuery.of(context).size.height / 2 - 16,
+              left: isRTL ? null : 0,
+              right: isRTL ? 0 : null,
               child: SlideTransition(
                 position: _drawerHintAnimation,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
                     vertical: 8,
-                  ), // أصغر
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.12),
                     borderRadius: const BorderRadius.horizontal(
@@ -221,10 +266,10 @@ class _ProfilePageState extends State<ProfilePage>
                     ],
                   ),
                   child: Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.arrow_forward_ios_rounded,
-                    size: 14, // أصغر حجم
+                    isRTL
+                        ? Icons.arrow_forward
+                        : Icons.arrow_forward,
+                    size: 14,
                     color: AppColors.primary,
                   ),
                 ),
@@ -334,12 +379,9 @@ class _ProfilePageState extends State<ProfilePage>
                       ),
                     ),
                   ),
-
                   SizedBox(height: isTablet ? 24 : 20),
-
-                  // User Name
                   Text(
-                    "${widget.user.firstName} ${widget.user.lastName}",
+                    "${_getSafeStringValue(widget.user.firstName)} ${_getSafeStringValue(widget.user.lastName)}",
                     style: TextStyle(
                       fontSize:
                           isDesktop
@@ -355,10 +397,8 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
 
                   SizedBox(height: isTablet ? 8 : 6),
-
-                  // User Email
                   Text(
-                    widget.user.email,
+                    _getSafeStringValue(widget.user.email),
                     style: TextStyle(
                       fontSize:
                           isDesktop
@@ -374,7 +414,6 @@ class _ProfilePageState extends State<ProfilePage>
 
                   SizedBox(height: isTablet ? 28 : 24),
 
-                  // Enhanced Info Grid
                   _buildInfoGrid(screenSize, isTablet, isDesktop),
                 ],
               ),
@@ -389,26 +428,26 @@ class _ProfilePageState extends State<ProfilePage>
     final items = [
       {
         'icon': Icons.location_city_outlined,
-        'title': 'المدينة',
-        'value': widget.user.city,
+        'title': 'city'.tr(),
+        'value': _getSafeStringValue(widget.user.city),
         'color': Colors.blue,
       },
       {
         'icon': Icons.phone_outlined,
-        'title': 'الهاتف',
-        'value': widget.user.phoneNumber,
+        'title': 'phone'.tr(),
+        'value': _getSafeStringValue(widget.user.phoneNumber),
         'color': Colors.green,
       },
       {
         'icon': Icons.person_pin_outlined,
-        'title': 'الجنس',
-        'value': widget.user.gender,
+        'title': 'gender'.tr(),
+        'value': _getSafeStringValue(widget.user.gender),
         'color': Colors.purple,
       },
       {
         'icon': Icons.email_outlined,
-        'title': 'الايميل',
-        'value': widget.user.email,
+        'title': 'email'.tr(),
+        'value': _getSafeStringValue(widget.user.email),
         'color': Colors.orange,
       },
     ];
@@ -736,7 +775,7 @@ class _ProfilePageState extends State<ProfilePage>
           ),
 
           Text(
-            "معلومات حسابي",
+            "account_info".tr(),
             style: TextStyle(
               fontSize:
                   isDesktop
@@ -751,7 +790,7 @@ class _ProfilePageState extends State<ProfilePage>
           ),
 
           Text(
-            "هنا يمكنك عرض وتعديل معلومات حسابك الشخصي وإدارة إعدادات الأمان",
+            "account_info_description".tr(),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize:
@@ -766,7 +805,7 @@ class _ProfilePageState extends State<ProfilePage>
           ),
 
           _buildAdvancedActionButton(
-            "تعديل المعلومات",
+            "edit_information".tr(),
             Icons.edit_outlined,
             screenSize,
             isTablet,
@@ -852,7 +891,7 @@ class _ProfilePageState extends State<ProfilePage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "بطاقتي الائتمانية",
+                      "my_credit_card".tr(),
                       style: TextStyle(
                         fontSize:
                             isDesktop
@@ -865,7 +904,7 @@ class _ProfilePageState extends State<ProfilePage>
                       ),
                     ),
                     Text(
-                      "إدارة وسيلة الدفع الخاصة بك",
+                      "manage_payment_method".tr(),
                       style: TextStyle(
                         fontSize:
                             isDesktop
@@ -909,7 +948,7 @@ class _ProfilePageState extends State<ProfilePage>
 
                 // Edit Card Button
                 _buildAdvancedActionButton(
-                  "تعديل بيانات البطاقة",
+                  "edit_card_data".tr(),
                   Icons.edit_outlined,
                   screenSize,
                   isTablet,
@@ -1043,7 +1082,7 @@ class _ProfilePageState extends State<ProfilePage>
                           ),
                         ),
                         child: Text(
-                          "افتراضي",
+                          "default".tr(),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize:
@@ -1090,7 +1129,7 @@ class _ProfilePageState extends State<ProfilePage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "اسم حامل البطاقة",
+                            "card_holder_name".tr(),
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.8),
                               fontSize:
@@ -1104,7 +1143,7 @@ class _ProfilePageState extends State<ProfilePage>
                           ),
                           SizedBox(height: isTablet ? 4 : 2),
                           Text(
-                            cardHolder,
+                            "${_getSafeStringValue(widget.user.firstName)} ${_getSafeStringValue(widget.user.lastName)}",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize:
@@ -1126,7 +1165,7 @@ class _ProfilePageState extends State<ProfilePage>
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          "تاريخ الانتهاء",
+                          "expiry_date".tr(),
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.8),
                             fontSize:
@@ -1287,7 +1326,7 @@ class _ProfilePageState extends State<ProfilePage>
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: "Edit Credit Card",
+      barrierLabel: "edit_credit_card".tr(),
       barrierColor: Colors.black.withOpacity(0.6),
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, animation, secondaryAnimation) {
@@ -1352,9 +1391,9 @@ class _ProfilePageState extends State<ProfilePage>
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            "تعديل بيانات البطاقة الائتمانية",
-                            style: TextStyle(
+                          Text(
+                            "edit_credit_card_data".tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -1422,9 +1461,9 @@ class _ProfilePageState extends State<ProfilePage>
                                             6,
                                           ),
                                         ),
-                                        child: const Text(
-                                          "رئيسية",
-                                          style: TextStyle(
+                                        child: Text(
+                                          "primary".tr(),
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
@@ -1474,9 +1513,9 @@ class _ProfilePageState extends State<ProfilePage>
 
                           const SizedBox(height: 20),
 
-                          const Text(
-                            "ستتم إعادة توجيهك إلى صفحة تعديل بيانات البطاقة الآمنة",
-                            style: TextStyle(
+                          Text(
+                            "redirect_secure_card_edit".tr(),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.black87,
                               height: 1.5,
@@ -1503,7 +1542,7 @@ class _ProfilePageState extends State<ProfilePage>
                                     ),
                                   ),
                                   child: Text(
-                                    "إلغاء",
+                                    "cancel".tr(),
                                     style: TextStyle(
                                       color: Colors.purple.shade600,
                                       fontWeight: FontWeight.w600,
@@ -1528,9 +1567,9 @@ class _ProfilePageState extends State<ProfilePage>
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: const Text(
-                                    "تعديل",
-                                    style: TextStyle(
+                                  child: Text(
+                                    "edit".tr(),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1557,11 +1596,11 @@ class _ProfilePageState extends State<ProfilePage>
     // For now, showing a placeholder message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.edit, color: Colors.white),
-            SizedBox(width: 8),
-            Text("سيتم توجيهك إلى صفحة تعديل البطاقة"),
+            const Icon(Icons.edit, color: Colors.white),
+            const SizedBox(width: 8),
+            Text("redirect_card_edit".tr()),
           ],
         ),
         backgroundColor: Colors.purple.shade600,

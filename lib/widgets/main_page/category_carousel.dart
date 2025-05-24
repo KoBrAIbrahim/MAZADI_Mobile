@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class CategoryCarousel extends StatefulWidget {
   const CategoryCarousel({super.key});
@@ -8,15 +9,7 @@ class CategoryCarousel extends StatefulWidget {
 }
 
 class _CategoryCarouselState extends State<CategoryCarousel> {
-  final List<String> categories = [
-    'الكل',
-    'الكترونيات',
-    'سيارات',
-    'عقارات',
-    'أثاث',
-    'ملابس',
-    'اخرى',
-  ];
+  List<String> categories = [];
 
   final List<String> images = [
     'assets/icons/all.png',
@@ -31,6 +24,32 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
   int selectedIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _initializeCategories();
+  }
+
+  void _initializeCategories() {
+    categories = [
+      'category_all'.tr(),
+      'category_electronics'.tr(),
+      'category_cars'.tr(),
+      'category_real_estate'.tr(),
+      'category_furniture'.tr(),
+      'category_clothes'.tr(),
+      'category_others'.tr(),
+    ];
+  }
+
+@override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  setState(() {
+    _initializeCategories(); // ✅ الآن آمن
+  });
+}
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 100,
@@ -41,9 +60,8 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
         separatorBuilder: (context, index) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final isSelected = selectedIndex == index;
-
           return Tooltip(
-            message: categories[index], // ⬅️ النص اللي يظهر عند الضغط المطوّل
+            message: categories[index], // Text that appears on long press
             waitDuration: const Duration(milliseconds: 400),
             child: GestureDetector(
               onTap: () {
@@ -51,7 +69,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
               },
               child: Column(
                 children: [
-                  // ✅ خط علوي صغير ملوّن عند التحديد
+                  // Small colored top line when selected
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     height: 5,
@@ -62,8 +80,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                     ),
                   ),
                   const SizedBox(height: 6),
-
-                  // ✅ أيقونة دائرية مع ظل خفيف
+                  // Circular icon with subtle shadow
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     padding: const EdgeInsets.all(4),
@@ -91,10 +108,8 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                       backgroundImage: AssetImage(images[index]),
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
-                  // ✅ النص
+                  // Text
                   Text(
                     categories[index],
                     style: TextStyle(

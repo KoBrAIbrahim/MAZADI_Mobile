@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:application/constants/app_colors.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class FilterPage extends StatefulWidget {
   const FilterPage({super.key});
@@ -11,7 +12,12 @@ class FilterPage extends StatefulWidget {
 class _FilterPageState extends State<FilterPage> {
   String? selectedSort;
 
-  final List<String> sortOptions = ['All', 'Price', 'Date', 'Rating'];
+  final List<String> sortOptionsKeys = [
+    'sort_all',
+    'sort_price',
+    'sort_date',
+    'sort_rating',
+  ];
 
   void applyFilter() {
     Navigator.of(context).pop(selectedSort);
@@ -29,7 +35,7 @@ class _FilterPageState extends State<FilterPage> {
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: screenHeight * 0.35, // 35% من ارتفاع الشاشة
+        height: screenHeight * 0.35,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom + 20),
           child: Container(
@@ -65,7 +71,7 @@ class _FilterPageState extends State<FilterPage> {
                   ),
                 ),
                 Text(
-                  'Sort by',
+                  'sort_by'.tr(),
                   style: TextStyle(
                     fontSize: screenWidth * 0.045,
                     fontWeight: FontWeight.bold,
@@ -76,12 +82,12 @@ class _FilterPageState extends State<FilterPage> {
                   spacing: 12,
                   runSpacing: 12,
                   children:
-                      sortOptions.map((option) {
-                        final isSelected = selectedSort == option;
+                      sortOptionsKeys.map((key) {
+                        final isSelected = selectedSort == key;
                         return GestureDetector(
                           onTap: () {
                             setState(() {
-                              selectedSort = option;
+                              selectedSort = key;
                             });
                           },
                           child: AnimatedContainer(
@@ -95,20 +101,16 @@ class _FilterPageState extends State<FilterPage> {
                                   isSelected
                                       ? AppColors.primary.withOpacity(0.1)
                                       : Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(
-                                8,
-                              ), // ← زاوية مستطيل ناعم
+                              borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color:
                                     isSelected
                                         ? AppColors.primary
                                         : Colors.grey.shade400,
-                                width: 1.0,
                               ),
                             ),
-
                             child: Text(
-                              option,
+                              key.tr(),
                               style: TextStyle(
                                 color:
                                     isSelected
@@ -137,7 +139,7 @@ class _FilterPageState extends State<FilterPage> {
                       shadowColor: AppColors.primary.withOpacity(0.3),
                     ),
                     child: Text(
-                      'Apply Sort',
+                      'apply_sort'.tr(),
                       style: TextStyle(
                         fontSize: screenWidth * 0.04,
                         fontWeight: FontWeight.bold,

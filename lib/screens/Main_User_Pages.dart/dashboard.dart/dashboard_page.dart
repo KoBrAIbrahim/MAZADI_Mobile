@@ -1,7 +1,11 @@
+import 'package:application/main.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AuctionDrawer extends StatelessWidget {
   final String selectedItem;
+
   const AuctionDrawer({super.key, required this.selectedItem});
 
   @override
@@ -25,21 +29,30 @@ class AuctionDrawer extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "مرحباً، أحمد",
-                          style: TextStyle(
+                          '${'welcome'.tr()}, أحمد',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          "عرض الملف الشخصي",
-                          style: TextStyle(color: Colors.teal, fontSize: 14),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.go('/profile', extra: testUser);
+                          },
+                          child: Text(
+                            'drawer_profile'.tr(),
+                            style: const TextStyle(
+                              color: Colors.teal,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -54,67 +67,91 @@ class AuctionDrawer extends StatelessWidget {
                 children: [
                   _buildDrawerItem(
                     icon: Icons.home_outlined,
-                    title: "الصفحة الرئيسية",
+                    title: 'drawer_home'.tr(),
                     isActive: selectedItem == "home",
                     onTap: () {
                       Navigator.pop(context);
-                      // يمكنك هنا التنقل إلى الصفحة الرئيسية
+                      context.go('/home_page', extra: posts);
                     },
                   ),
-
                   _buildDrawerItem(
                     icon: Icons.gavel_outlined,
-                    title: "المزادات",
+                    title: 'drawer_auctions'.tr(),
                     isActive: selectedItem == "auctions",
                     onTap: () {
                       Navigator.pop(context);
-                      // أو التوجيه لصفحة المزادات
+                      context.go(
+                        '/main_auction',
+                        extra: {
+                          'auction': auctions,
+                          'posts': posts,
+                          'bids': bids,
+                        },
+                      );
                     },
                   ),
-
                   _buildDrawerItem(
                     icon: Icons.favorite_border_outlined,
-                    title: "المزادات المفضلة",
-                    isActive: selectedItem == "interested",
-                    onTap: () {},
+                    title: 'drawer_favorites'.tr(),
+                    isActive: selectedItem == "favorites",
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go('/interested', extra: posts);
+                    },
                   ),
                   _buildDrawerItem(
                     icon: Icons.sell_outlined,
-                    title: "منشوارتي",
-                    isActive: selectedItem == "my auction",
-                    onTap: () {},
+                    title: 'drawer_my_posts'.tr(),
+                    isActive: selectedItem == "my_posts",
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go('/my_posts', extra: posts);
+                    },
                   ),
                   _buildDrawerItem(
                     icon: Icons.sell_outlined,
-                    title: "مزاداتي",
-                    isActive: selectedItem == "my auction",
-                    onTap: () {},
+                    title: 'drawer_my_auctions'.tr(),
+                    isActive: selectedItem == "my_auctions",
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go('/winners', extra: posts_1);
+                    },
                   ),
                   const Divider(),
-                 _buildDrawerItem(
+                  _buildDrawerItem(
                     icon: Icons.settings_outlined,
-                    title: "الإعدادات",
+                    title: 'drawer_settings'.tr(),
                     isActive: selectedItem == "settings",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go('/settings');
+                    },
                   ),
                   _buildDrawerItem(
                     icon: Icons.support_agent_outlined,
-                    title: "الدعم الفني",
+                    title: 'drawer_support'.tr(),
                     isActive: selectedItem == "support",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go('/support');
+                    },
                   ),
                   _buildDrawerItem(
                     icon: Icons.info_outline,
-                    title: "حول التطبيق",
-                    isActive: selectedItem == "about us",
-                    onTap: () {},
+                    title: 'drawer_about'.tr(),
+                    isActive: selectedItem == "about",
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go('/about_us');
+                    },
                   ),
                   const Divider(),
-                  
                   _buildDrawerItem(
                     icon: Icons.logout,
-                    title: "تسجيل الخروج",
-                    onTap: () {},
+                    title: 'drawer_logout'.tr(),
+                    onTap: () {
+                      context.go('/login');
+                    },
                   ),
                 ],
               ),
@@ -137,20 +174,26 @@ class AuctionDrawer extends StatelessWidget {
                     child: const Icon(Icons.headset_mic, color: Colors.teal),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "تحتاج مساعدة؟",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "تواصل مع فريق الدعم",
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ],
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.go('/support');
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'drawer_help_title'.tr(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'drawer_help_sub'.tr(),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const Icon(

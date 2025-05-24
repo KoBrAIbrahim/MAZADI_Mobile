@@ -28,6 +28,8 @@ class _MyPostsPageState extends State<MyPostsPage> {
     loadMoreUserPosts();
 
     _scrollController.addListener(() {
+      if (!mounted) return;
+
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
         loadMoreUserPosts();

@@ -1,6 +1,8 @@
 import 'package:application/constants/app_colors.dart';
 import 'package:application/widgets/backgorund/auth_background.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ForgetPasswordPage extends StatelessWidget {
   const ForgetPasswordPage({super.key});
@@ -23,8 +25,8 @@ class ForgetPasswordPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 060),
-            const Text(
-              'Enter Email Address',
+            Text(
+              'enter_email'.tr(),
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
@@ -63,8 +65,8 @@ class ForgetPasswordPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
-                  'Send',
+                child: Text(
+                  'send'.tr(),
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -77,10 +79,11 @@ class ForgetPasswordPage extends StatelessWidget {
 
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                context.go('/login');
               },
-              child: const Text(
-                'Back to log in',
+              child: Text(
+                'back_to_login'.tr(),
+
                 style: TextStyle(color: Colors.grey),
               ),
             ),

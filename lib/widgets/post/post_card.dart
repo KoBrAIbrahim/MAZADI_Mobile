@@ -7,6 +7,7 @@ import '../../models/post.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -25,16 +26,16 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   Duration _timeRemaining = Duration.zero;
   late DateTime _targetDate;
   late Timer _timer;
-  
+
   // Controllers
   late PageController _pageController;
   late TabController _tabController;
-  
+
   // Animation controllers
   late AnimationController _likeAnimationController;
   late AnimationController _pulseAnimationController;
   late AnimationController _gradientAnimationController;
-  
+
   // Animations
   late Animation<double> _pulseAnimation;
   late Animation<AlignmentGeometry> _gradientAnimation;
@@ -50,18 +51,21 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   void _initializeControllers() {
     isLiked = widget.post.isFav;
     _pageController = PageController(viewportFraction: 1.0);
-    _tabController = TabController(length: widget.post.media.length, vsync: this);
-    
+    _tabController = TabController(
+      length: widget.post.media.length,
+      vsync: this,
+    );
+
     _likeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     _pulseAnimationController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _gradientAnimationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -78,14 +82,20 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   void _initializeAnimations() {
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _pulseAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _pulseAnimationController,
+        curve: Curves.easeInOut,
+      ),
     );
 
     _gradientAnimation = AlignmentTween(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ).animate(
-      CurvedAnimation(parent: _gradientAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _gradientAnimationController,
+        curve: Curves.easeInOut,
+      ),
     );
   }
 
@@ -111,15 +121,19 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
         (currentWeekday == DateTime.monday && !isAfter6PM)) {
       // Countdown to Monday 6:00 PM
       final daysUntilMonday = (DateTime.monday - currentWeekday + 7) % 7;
-      nextTarget = DateTime(now.year, now.month, now.day)
-          .add(Duration(days: daysUntilMonday))
-          .add(const Duration(hours: 18));
+      nextTarget = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).add(Duration(days: daysUntilMonday)).add(const Duration(hours: 18));
     } else {
       // Countdown to Thursday 6:00 PM
       final daysUntilThursday = (DateTime.thursday - currentWeekday + 7) % 7;
-      nextTarget = DateTime(now.year, now.month, now.day)
-          .add(Duration(days: daysUntilThursday))
-          .add(const Duration(hours: 18));
+      nextTarget = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).add(Duration(days: daysUntilThursday)).add(const Duration(hours: 18));
     }
 
     _targetDate = nextTarget;
@@ -166,13 +180,14 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.8,
-        child: DetailsPostPage(
-          post: widget.post,
-          pageType: widget.pageType,
-        ),
-      ),
+      builder:
+          (context) => FractionallySizedBox(
+            heightFactor: 0.8,
+            child: DetailsPostPage(
+              post: widget.post,
+              pageType: widget.pageType,
+            ),
+          ),
     );
   }
 
@@ -184,8 +199,12 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
     final seconds = _timeRemaining.inSeconds % 60;
 
     final parts = <String>[];
-    if (days > 0) parts.add('${days}d');
-    parts.addAll(['${hours}h', '${minutes}m', '${seconds}s']);
+    if (days > 0) parts.add('$days${"time.days".tr()}');
+    parts.addAll([
+      '$hours${"time.hours".tr()}',
+      '$minutes${"time.minutes".tr()}',
+      '$seconds${"time.seconds".tr()}',
+    ]);
 
     return parts.join(' ');
   }
@@ -202,12 +221,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
         decoration: _buildCardDecoration(),
-        child: Column(
-          children: [
-            _buildImageSection(),
-            _buildInfoSection(),
-          ],
-        ),
+        child: Column(children: [_buildImageSection(), _buildInfoSection()]),
       ),
     );
   }
@@ -291,7 +305,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   Widget _buildImageIndicators() {
     if (widget.post.media.length <= 1) return const SizedBox();
-    
+
     return Positioned(
       bottom: 12,
       left: 0,
@@ -306,9 +320,10 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
             height: 8,
             width: currentImageIndex == index ? 24 : 8,
             decoration: BoxDecoration(
-              color: currentImageIndex == index
-                  ? Colors.white
-                  : Colors.white.withOpacity(0.4),
+              color:
+                  currentImageIndex == index
+                      ? Colors.white
+                      : Colors.white.withOpacity(0.4),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -379,7 +394,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   Widget _buildStatusBadge(String status) {
     final statusConfig = _getStatusConfig(status);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -410,25 +425,25 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
         return {
           'color': Colors.orange.shade400,
           'icon': Icons.hourglass_empty,
-          'label': 'قيد الانتظار'
+          'label': 'status.waiting'.tr(),
         };
       case 'IN_PROGRASS':
         return {
           'color': Colors.blue.shade400,
           'icon': Icons.autorenew,
-          'label': 'قيد التنفيذ'
+          'label': 'status.in_progress'.tr(),
         };
       case 'COMPLETED':
         return {
           'color': Colors.green.shade400,
           'icon': Icons.check_circle,
-          'label': 'مكتمل'
+          'label': 'status.completed'.tr(),
         };
       default:
         return {
           'color': Colors.grey.shade400,
           'icon': Icons.info_outline,
-          'label': 'غير معروف'
+          'label': 'status.unknown'.tr(),
         };
     }
   }
@@ -443,15 +458,17 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: isLiked
-                ? Colors.red.withOpacity(0.9)
-                : Colors.black.withOpacity(0.4),
+            color:
+                isLiked
+                    ? Colors.red.withOpacity(0.9)
+                    : Colors.black.withOpacity(0.4),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: isLiked
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.2),
+                color:
+                    isLiked
+                        ? Colors.red.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -459,14 +476,15 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
           ),
           child: AnimatedBuilder(
             animation: _likeAnimationController,
-            builder: (_, __) => Transform.scale(
-              scale: 1.0 + _likeAnimationController.value * 0.2,
-              child: Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
+            builder:
+                (_, __) => Transform.scale(
+                  scale: 1.0 + _likeAnimationController.value * 0.2,
+                  child: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
           ),
         ),
       ),
@@ -500,8 +518,8 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
       children: [
         Expanded(
           child: _buildInfoCard(
-            "Post on Auction",
-            "#${widget.post.numberOfOnAuction}",
+            "post.on_auction".tr(),
+            "${"common.number_prefix".tr()}${widget.post.numberOfOnAuction}",
             icon: Icons.confirmation_number,
             color: Colors.deepPurple,
           ),
@@ -509,8 +527,8 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
         const SizedBox(width: 12),
         Expanded(
           child: _buildInfoCard(
-            "Starting Bid",
-            "${widget.post.startPrice} NIS",
+            "post.starting_bid".tr(),
+            "${widget.post.startPrice} ${"common.currency".tr()}",
             icon: Icons.monetization_on,
             color: Colors.green,
           ),
@@ -536,10 +554,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             child: Icon(icon, size: 16, color: Colors.white),
           ),
           const SizedBox(width: 8),
@@ -576,17 +591,32 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem(Icons.gavel, "Bids", "${widget.post.bid_step}", Colors.amber),
+          _buildStatItem(
+            Icons.gavel,
+            "stats.bids".tr(),
+            "${widget.post.bid_step}",
+            Colors.amber,
+          ),
           _buildVerticalDivider(),
-          _buildStatItem(Icons.visibility, "Views", "32", Colors.blue),
+          _buildStatItem(
+            Icons.visibility,
+            "stats.views".tr(),
+            "32",
+            Colors.blue,
+          ),
           _buildVerticalDivider(),
-          _buildStatItem(Icons.star, "Rating", "4.8", Colors.orange),
+          _buildStatItem(Icons.star, "stats.rating".tr(), "4.8", Colors.orange),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value, Color color) {
+  Widget _buildStatItem(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Column(
       children: [
         Container(
@@ -615,8 +645,11 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   }
 
   Widget _buildTimer() {
-    final targetDayName = DateFormat('EEEE').format(_targetDate);
-    
+    final targetDayName = DateFormat(
+      'EEEE',
+      context.locale.languageCode,
+    ).format(_targetDate);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -636,7 +669,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                   Icon(Icons.schedule, size: 16, color: Colors.red.shade600),
                   const SizedBox(width: 6),
                   Text(
-                    "Starts $targetDayName",
+                    "timer.starts".tr(args: [targetDayName]),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -646,7 +679,10 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                 ],
               ),
               Text(
-                DateFormat('MMM d').format(_targetDate),
+                DateFormat(
+                  'MMM d',
+                  context.locale.languageCode,
+                ).format(_targetDate),
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             ],
@@ -678,8 +714,8 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   Widget _buildFinalPrice() {
     return _buildInfoCard(
-      "Final Price",
-      "${widget.post.currentBid} NIS",
+      "post.final_price".tr(),
+      "${widget.post.currentBid} ${"common.currency".tr()}",
       icon: Icons.attach_money,
       color: Colors.green,
     );

@@ -5,6 +5,7 @@ import 'package:application/models/bid.dart';
 import 'package:application/models/post.dart';
 import 'package:application/screens/Main_User_Pages.dart/Auction_pages/bid_button_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final Auction auction;
@@ -36,7 +37,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    selectedPost = widget.posts.first;
+    if (widget.posts.isNotEmpty) {
+      selectedPost = widget.posts.first;
+    }
 
     // يجب تعيين _endTime أولاً قبل استدعاء التايمر
     _endTime = DateTime.now().add(const Duration(minutes: 1));
@@ -47,7 +50,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     final now = DateTime.now();
     final difference = _endTime.difference(now);
 
-    setState(() => _timeLeft = difference);
+    if (mounted) {
+      setState(() => _timeLeft = difference);
+    }
 
     _timer?.cancel(); // مهم: إلغاء المؤقت القديم
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -55,7 +60,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
       if (diff.isNegative) {
         timer.cancel();
       } else {
-        setState(() => _timeLeft = diff);
+        if (mounted) {
+          setState(() => _timeLeft = diff);
+        }
       }
     });
   }
@@ -184,8 +191,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                                           ),
                                         ),
                                         const SizedBox(width: 6),
-                                        const Text(
-                                          "LIVE",
+                                        Text(
+                                          "live".tr(),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
@@ -239,9 +246,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                "${widget.auction.participantCount} مزايد",
+                                "bidders".tr(
+                                  args: [
+                                    widget.auction.participantCount.toString(),
+                                  ],
+                                ),
                                 style: TextStyle(color: Colors.grey.shade700),
                               ),
+
                               const SizedBox(width: 16),
                               const Icon(
                                 Icons.remove_red_eye,
@@ -250,7 +262,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                "${widget.auction.viewCount} مشاهدة",
+                                "views".tr(
+                                  args: [widget.auction.viewCount.toString()],
+                                ),
                                 style: TextStyle(color: Colors.grey.shade700),
                               ),
                             ],
@@ -273,8 +287,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                                 padding: const EdgeInsets.all(12),
                                 child: Column(
                                   children: [
-                                    const Text(
-                                      "أعلى مزايدة",
+                                    Text(
+                                      "highest_bid".tr(),
                                       style: TextStyle(
                                         color: Colors.grey,
                                         fontSize: 12,
@@ -316,8 +330,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
                                     children: [
-                                      const Text(
-                                        "ضع مزايدتك",
+                                      Text(
+                                        "place_bid".tr(),
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -349,10 +363,10 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                         labelColor: Colors.teal,
                         unselectedLabelColor: Colors.grey,
                         indicatorColor: Colors.teal,
-                        tabs: const [
-                          Tab(text: "المزايدات"),
-                          Tab(text: "التفاصيل"),
-                          Tab(text: "القواعد"),
+                        tabs: [
+                          Tab(text: "bids".tr()),
+                          Tab(text: "details".tr()),
+                          Tab(text: "rules".tr()),
                         ],
                       ),
                     ),
@@ -393,8 +407,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "المزايدة الحالية",
+                    Text(
+                      "current_bid".tr(),
                       style: TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     Text(
@@ -436,8 +450,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    "ضع مزايدة",
+                  child: Text(
+                    "place_bid".tr(),
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -453,8 +467,6 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     final totalDuration = const Duration(minutes: 1);
     final progress =
         1 - (_timeLeft.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0);
-
-    // تدرج لوني من أخضر إلى أحمر حسب الوقت المتبقي
     final Color barColor =
         Color.lerp(Colors.green.shade300, Colors.red.shade600, progress)!;
 
@@ -469,7 +481,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "الوقت المتبقي: $h:$m:$s",
+            "time_left".tr(args: ["$h:$m:$s"]),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
@@ -544,8 +556,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                               color: Colors.teal,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Text(
-                              "أعلى مزايدة",
+                            child: Text(
+                              "highest_bid".tr(),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -586,13 +598,13 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     final difference = now.difference(time);
 
     if (difference.inDays > 0) {
-      return "منذ ${difference.inDays} يوم";
+      return "ago_days".tr(args: [difference.inDays.toString()]);
     } else if (difference.inHours > 0) {
-      return "منذ ${difference.inHours} ساعة";
+      return "ago_hours".tr(args: [difference.inHours.toString()]);
     } else if (difference.inMinutes > 0) {
-      return "منذ ${difference.inMinutes} دقيقة";
+      return "ago_minutes".tr(args: [difference.inMinutes.toString()]);
     } else {
-      return "منذ ${difference.inSeconds} ثانية";
+      return "ago_seconds".tr(args: [difference.inSeconds.toString()]);
     }
   }
 
@@ -616,32 +628,34 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "معلومات المزاد",
+              Text(
+                "auction_info".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildInfoRow(
                 icon: Icons.category,
-                title: "الفئة",
+                title: "category".tr(),
                 value: widget.auction.category,
               ),
               const Divider(),
               _buildInfoRow(
                 icon: Icons.gavel,
-                title: "عدد المزايدين",
-                value: "${widget.auction.participantCount} مزايد",
+                title: "bidders_count".tr(),
+                value: "bidders".tr(
+                  args: [widget.auction.participantCount.toString()],
+                ),
               ),
               const Divider(),
               _buildInfoRow(
                 icon: Icons.remove_red_eye,
-                title: "المشاهدات",
-                value: "${widget.auction.viewCount} مشاهدة",
+                title: "views".tr(),
+                value: "views".tr(args: [widget.auction.viewCount.toString()]),
               ),
               const Divider(),
               _buildInfoRow(
                 icon: Icons.price_change,
-                title: "الحد الأدنى للمزايدة",
+                title: "min_bid".tr(),
                 value: "NIS ${selectedPost.bid_step.toStringAsFixed(2)}",
               ),
             ],
@@ -667,8 +681,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "الوصف",
+              Text(
+                "description".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -732,37 +746,37 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "قواعد المزاد",
+              Text(
+                "auction_rules".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildRuleItem(
                 number: 1,
-                title: "المزايدة الأدنى",
+                title: "rule_min_bid".tr(),
                 description: "الحد الأدنى للمزايدة هو 50 شيكل فوق آخر مزايدة.",
               ),
               _buildRuleItem(
                 number: 2,
-                title: "مدة المزاد",
+                title: "rule_duration".tr(),
                 description:
                     "يستمر المزاد حتى الموعد المحدد، ويتم تمديده 5 دقائق إضافية في حال وجود مزايدة في آخر دقيقتين.",
               ),
               _buildRuleItem(
                 number: 3,
-                title: "الالتزام بالشراء",
+                title: "rule_commitment".tr(),
                 description:
                     "المزايد الفائز ملزم بإتمام عملية الشراء خلال 48 ساعة من انتهاء المزاد.",
               ),
               _buildRuleItem(
                 number: 4,
-                title: "طرق الدفع",
+                title: "rule_payment".tr(),
                 description:
                     "يتم الدفع عبر التطبيق باستخدام البطاقات الائتمانية أو الحوالات البنكية.",
               ),
               _buildRuleItem(
                 number: 5,
-                title: "التوصيل",
+                title: "rule_delivery".tr(),
                 description:
                     "سيتم توصيل المنتج خلال 3-5 أيام عمل من تاريخ الدفع.",
               ),
@@ -786,8 +800,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "معلومات إضافية",
+              Text(
+                "extra_info".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -828,7 +842,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                         Icon(Icons.support_agent, color: Colors.blue.shade800),
                         const SizedBox(width: 12),
                         Text(
-                          "الدعم الفني",
+                          "support.title".tr(),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.blue.shade800,
