@@ -41,16 +41,21 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
     ];
   }
 
-@override
-void didChangeDependencies() {
-  super.didChangeDependencies();
-  setState(() {
-    _initializeCategories(); // ✅ الآن آمن
-  });
-}
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    setState(() {
+      _initializeCategories();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+    final cardColor = theme.cardColor;
+    final textColor = theme.textTheme.bodyMedium?.color ?? Colors.black;
+
     return SizedBox(
       height: 100,
       child: ListView.separated(
@@ -60,8 +65,9 @@ void didChangeDependencies() {
         separatorBuilder: (context, index) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final isSelected = selectedIndex == index;
+
           return Tooltip(
-            message: categories[index], // Text that appears on long press
+            message: categories[index],
             waitDuration: const Duration(milliseconds: 400),
             child: GestureDetector(
               onTap: () {
@@ -69,53 +75,48 @@ void didChangeDependencies() {
               },
               child: Column(
                 children: [
-                  // Small colored top line when selected
+                  // الخط العلوي
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     height: 5,
                     width: 40,
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.teal : Colors.transparent,
+                      color: isSelected ? primaryColor : Colors.transparent,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Circular icon with subtle shadow
+                  // الدائرة
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isSelected ? Colors.teal : Colors.white,
+                      color: isSelected ? primaryColor : cardColor,
                       boxShadow: [
-                        if (isSelected)
-                          BoxShadow(
-                            color: Colors.teal.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          )
-                        else
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
+                        BoxShadow(
+                          color: isSelected
+                              ? primaryColor.withOpacity(0.3)
+                              : Colors.black26,
+                          blurRadius: isSelected ? 8 : 4,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
                     ),
                     child: CircleAvatar(
                       radius: 25,
-                      backgroundColor: Colors.white,
+                      backgroundColor: cardColor,
                       backgroundImage: AssetImage(images[index]),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Text
+                  // النص
                   Text(
                     categories[index],
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.teal : Colors.black,
+                      color: isSelected ? primaryColor : textColor,
                     ),
                   ),
                 ],

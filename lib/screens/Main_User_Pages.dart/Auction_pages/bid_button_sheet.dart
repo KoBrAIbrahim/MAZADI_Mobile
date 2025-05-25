@@ -46,9 +46,9 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -64,14 +64,22 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
           ),
           Text(
             'place_bid'.tr(),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
           ),
           const SizedBox(height: 20),
           _buildBidSummary(),
           const SizedBox(height: 20),
           Text(
             'choose_bid_value'.tr(),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -79,12 +87,9 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
             spacing: 10,
             runSpacing: 10,
             alignment: WrapAlignment.center,
-            children:
-                bidOptions
-                    .map(
-                      (bid) => _buildBidOption("NIS ${bid.toStringAsFixed(2)}"),
-                    )
-                    .toList(),
+            children: bidOptions
+                .map((bid) => _buildBidOption("NIS ${bid.toStringAsFixed(2)}"))
+                .toList(),
           ),
           const SizedBox(height: 20),
           _buildCustomBidField(),
@@ -99,7 +104,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
                 borderRadius: BorderRadius.circular(14),
               ),
               minimumSize: const Size(double.infinity, 56),
-              backgroundColor: Colors.teal,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
             ),
             child: Text(
@@ -111,7 +116,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'cancel'.tr(),
-              style: TextStyle(color: Colors.grey.shade700),
+              style: TextStyle(color: Theme.of(context).hintColor),
             ),
           ),
         ],
@@ -127,7 +132,7 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -136,15 +141,14 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'current_bid'.tr(),
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
+                Text('current_bid'.tr(),
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
                 Text(
                   "NIS ${currentBid.toStringAsFixed(2)}",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
               ],
@@ -155,10 +159,8 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  'min_bid'.tr(),
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
+                Text('min_bid'.tr(),
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
                 Text(
                   "NIS ${minBid.toStringAsFixed(2)}",
                   style: const TextStyle(
@@ -186,10 +188,12 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
           _customBidController.clear();
         });
       },
-      backgroundColor: Colors.grey.shade200,
-      selectedColor: Colors.teal.shade100,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.teal : Colors.black,
+        color: isSelected
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).textTheme.bodyMedium?.color,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -198,17 +202,15 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
   Widget _buildCustomBidField() {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
         controller: _customBidController,
         decoration: InputDecoration(
           hintText: 'custom_value'.tr(),
-          prefixIcon: const Icon(
-            Icons.monetization_on_outlined,
-            color: Colors.teal,
-          ),
+          prefixIcon: Icon(Icons.monetization_on_outlined,
+              color: Theme.of(context).colorScheme.primary),
           suffixText: "NIS",
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
@@ -228,18 +230,24 @@ class _BidBottomSheetState extends State<BidBottomSheet> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.orange.shade800),
+          Icon(Icons.info_outline,
+              color: Theme.of(context).colorScheme.secondary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'bid_warning'.tr(),
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.secondary,
+                fontSize: 12,
+              ),
             ),
           ),
         ],

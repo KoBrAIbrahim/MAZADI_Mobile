@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-Widget infoRow(IconData icon, String text, Color color) {
+Widget infoRow(BuildContext context, IconData icon, String text, Color color) {
   return Row(
     children: [
       Icon(icon, size: 18, color: color),
@@ -8,10 +8,10 @@ Widget infoRow(IconData icon, String text, Color color) {
       Expanded(
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyMedium?.color, // ✅ ديناميكي
           ),
         ),
       ),

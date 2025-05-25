@@ -20,9 +20,11 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
     final size = MediaQuery.of(context).size;
     final width = size.width;
     final height = size.height;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: BlurredBackground(
         child: LayoutBuilder(
@@ -38,7 +40,6 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                       children: [
                         SizedBox(height: height * 0.05),
 
-                        // Logo
                         Center(
                           child: Image.asset(
                             'assets/images/logo.png',
@@ -51,8 +52,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
 
                         Text(
                           'signup.title'.tr(),
-                          style: const TextStyle(
-                            fontSize: 24,
+                          style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -60,7 +60,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                         Container(
                           width: width * 0.3,
                           height: 2,
-                          color: AppColors.primary,
+                          color: colorScheme.primary,
                         ),
 
                         SizedBox(height: height * 0.04),
@@ -69,30 +69,35 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           label: 'signup.fields.fullName'.tr(),
                           hint: 'signup.hints.fullName'.tr(),
                           icon: Icons.person,
+                          colorScheme: colorScheme,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
                           label: 'signup.fields.phone'.tr(),
                           hint: 'signup.hints.phone'.tr(),
                           icon: Icons.phone,
+                          colorScheme: colorScheme,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
                           label: 'signup.fields.city'.tr(),
                           hint: 'signup.hints.city'.tr(),
                           icon: Icons.location_city,
+                          colorScheme: colorScheme,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
                           label: 'signup.fields.gender'.tr(),
                           hint: 'signup.hints.gender'.tr(),
                           icon: Icons.person_outline,
+                          colorScheme: colorScheme,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
                           label: 'signup.fields.email'.tr(),
                           hint: 'signup.hints.email'.tr(),
                           icon: Icons.email,
+                          colorScheme: colorScheme,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
@@ -101,11 +106,11 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           icon: Icons.lock,
                           obscure: _obscurePassword,
                           isPassword: true,
+                          colorScheme: colorScheme,
                         ),
 
                         const SizedBox(height: 30),
 
-                        // Sign up button
                         SizedBox(
                           width: double.infinity,
                           height: 50,
@@ -114,15 +119,15 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                               context.go('/home_page', extra: posts);
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
+                              backgroundColor: colorScheme.secondary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             child: Text(
                               'signup.button'.tr(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: colorScheme.onSecondary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -147,6 +152,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
     required String label,
     required String hint,
     required IconData icon,
+    required ColorScheme colorScheme,
     bool obscure = false,
     bool isPassword = false,
   }) {
@@ -157,12 +163,15 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
           width: 110,
           child: Row(
             children: [
-              Icon(icon, size: 18, color: AppColors.primary),
+              Icon(icon, size: 18, color: colorScheme.primary),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   label,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -176,27 +185,27 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
             decoration: InputDecoration(
               hintText: hint,
               isDense: true,
+              hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              enabledBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: colorScheme.primary),
               ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
-              suffixIcon:
-                  isPassword
-                      ? IconButton(
-                        icon: Icon(
-                          obscure ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      )
-                      : null,
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        obscure ? Icons.visibility_off : Icons.visibility,
+                        color: colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    )
+                  : null,
             ),
           ),
         ),

@@ -122,14 +122,14 @@ class _AboutAppPageState extends State<AboutAppPage>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
-     bool isRTL = context.locale.languageCode == 'ar';
+    bool isRTL = context.locale.languageCode == 'ar';
 
     return Scaffold(
       key: _scaffoldKey,
       drawer: AuctionDrawer(selectedItem: 'about'),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: buildHeader(screenSize, isTablet, 'about_app'.tr()),
+        child: buildHeader(context, screenSize, isTablet, 'about_app'.tr()),
       ),
       bottomNavigationBar: LowerBar(
         currentIndex: 0,
@@ -137,7 +137,7 @@ class _AboutAppPageState extends State<AboutAppPage>
           // TODO: ربط التنقل حسب البنية
         },
       ),
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.aboutPageBackground(context),
       floatingActionButton: AnimatedScale(
         scale: _showFloatingButton ? 1.0 : 0.0,
         duration: const Duration(milliseconds: 300),
@@ -149,8 +149,8 @@ class _AboutAppPageState extends State<AboutAppPage>
               curve: Curves.easeInOut,
             );
           },
-          backgroundColor: AppColors.primary,
-          child: const Icon(Icons.keyboard_arrow_up),
+          backgroundColor: AppColors.primaryLightDark(context),
+          child: const Icon(Icons.keyboard_arrow_up, color: Colors.white),
         ),
       ),
       body: Stack(
@@ -158,11 +158,7 @@ class _AboutAppPageState extends State<AboutAppPage>
           // Background gradient
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.white, AppColors.primary.withOpacity(0.02)],
-              ),
+              gradient: AppColors.aboutPageGradient(context),
             ),
           ),
 
@@ -219,29 +215,27 @@ class _AboutAppPageState extends State<AboutAppPage>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primaryLightDark(context).withOpacity(0.12),
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(10),
                       right: Radius.circular(10),
                     ),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primaryLightDark(context).withOpacity(0.3),
                       width: 0.8,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.15),
+                        color: AppColors.primaryLightDark(context).withOpacity(0.15),
                         blurRadius: 6,
                         offset: const Offset(0, 1.5),
                       ),
                     ],
                   ),
                   child: Icon(
-                    isRTL
-                        ? Icons.arrow_forward
-                        : Icons.arrow_forward,
+                    isRTL ? Icons.arrow_forward : Icons.arrow_forward,
                     size: 14,
-                    color: AppColors.primary,
+                    color: AppColors.primaryLightDark(context),
                   ),
                 ),
               ),
@@ -262,15 +256,11 @@ class _AboutAppPageState extends State<AboutAppPage>
             margin: const EdgeInsets.all(20),
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.heroSectionGradient(context),
               borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: AppColors.primaryLightDark(context).withOpacity(0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -317,19 +307,19 @@ class _AboutAppPageState extends State<AboutAppPage>
         'icon': Icons.gavel,
         'title': 'advanced_auctions'.tr(),
         'description': 'smart_auction_system'.tr(),
-        'color': const Color(0xFF6366F1),
+        'color': AppColors.featureCardBlue(context),
       },
       {
         'icon': Icons.security,
         'title': 'high_security'.tr(),
         'description': 'data_protection'.tr(),
-        'color': const Color(0xFF10B981),
+        'color': AppColors.featureCardGreen(context),
       },
       {
         'icon': Icons.speed,
         'title': 'ultra_speed'.tr(),
         'description': 'fast_experience'.tr(),
-        'color': const Color(0xFFF59E0B),
+        'color': AppColors.featureCardOrange(context),
       },
     ];
 
@@ -344,10 +334,10 @@ class _AboutAppPageState extends State<AboutAppPage>
             children: [
               Text(
                 'key_features'.tr(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
+                  color: AppColors.aboutSectionTitle(context),
                 ),
               ),
               const SizedBox(height: 15),
@@ -361,11 +351,11 @@ class _AboutAppPageState extends State<AboutAppPage>
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.cardBackground(context),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: AppColors.cardShadow(context),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
                         ),
@@ -392,10 +382,10 @@ class _AboutAppPageState extends State<AboutAppPage>
                             children: [
                               Text(
                                 feature['title'] as String,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1F2937),
+                                  color: AppColors.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 5),
@@ -403,7 +393,7 @@ class _AboutAppPageState extends State<AboutAppPage>
                                 feature['description'] as String,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -435,15 +425,11 @@ class _AboutAppPageState extends State<AboutAppPage>
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(25),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppColors.statsGradient(context),
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF667EEA).withOpacity(0.3),
+                color: AppColors.statsGradientShadow(context),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -462,33 +448,32 @@ class _AboutAppPageState extends State<AboutAppPage>
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children:
-                    stats.map((stat) {
-                      return Transform.scale(
-                        scale: _statsAnimation.value,
-                        child: Column(
-                          children: [
-                            Text(
-                              stat['number']!,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              stat['label']!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withOpacity(0.8),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                children: stats.map((stat) {
+                  return Transform.scale(
+                    scale: _statsAnimation.value,
+                    child: Column(
+                      children: [
+                        Text(
+                          stat['number']!,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      );
-                    }).toList(),
+                        const SizedBox(height: 5),
+                        Text(
+                          stat['label']!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -504,11 +489,11 @@ class _AboutAppPageState extends State<AboutAppPage>
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: const EdgeInsets.all(25),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBackground(context),
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: AppColors.cardShadow(context),
               blurRadius: 20,
               offset: const Offset(0, 5),
             ),
@@ -522,22 +507,22 @@ class _AboutAppPageState extends State<AboutAppPage>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primaryLightDark(context).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.info_outline,
-                    color: AppColors.primary,
+                    color: AppColors.primaryLightDark(context),
                     size: 24,
                   ),
                 ),
                 const SizedBox(width: 15),
                 Text(
                   'app_information'.tr(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
               ],
@@ -545,33 +530,33 @@ class _AboutAppPageState extends State<AboutAppPage>
             const SizedBox(height: 20),
             Text(
               'app_description'.tr(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 height: 1.6,
-                color: Color(0xFF4B5563),
+                color: AppColors.aboutBodyText(context),
               ),
             ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
+                color: AppColors.aboutInfoContainer(context),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.verified,
-                    color: Color(0xFF10B981),
+                    color: AppColors.featureCardGreen(context),
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Text(
                     'app_version'.tr(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF374151),
+                      color: AppColors.aboutSubText(context),
                     ),
                   ),
                 ],
@@ -588,11 +573,11 @@ class _AboutAppPageState extends State<AboutAppPage>
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.cardShadow(context),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -606,22 +591,22 @@ class _AboutAppPageState extends State<AboutAppPage>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                  color: AppColors.teamIconColor(context).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.group,
-                  color: Color(0xFF8B5CF6),
+                  color: AppColors.teamIconColor(context),
                   size: 24,
                 ),
               ),
               const SizedBox(width: 15),
               Text(
                 'development_team'.tr(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
+                  color: AppColors.textPrimary(context),
                 ),
               ),
             ],
@@ -629,38 +614,33 @@ class _AboutAppPageState extends State<AboutAppPage>
           const SizedBox(height: 20),
           Text(
             'team_description'.tr(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               height: 1.6,
-              color: Color(0xFF4B5563),
+              color: AppColors.aboutBodyText(context),
             ),
           ),
           const SizedBox(height: 15),
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF8B5CF6).withOpacity(0.1),
-                  const Color(0xFF06B6D4).withOpacity(0.1),
-                ],
-              ),
+              gradient: AppColors.teamAwardGradient(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.emoji_events,
-                  color: Color(0xFFF59E0B),
+                  color: AppColors.featureCardOrange(context),
                   size: 20,
                 ),
                 const SizedBox(width: 10),
                 Text(
                   'best_app_award'.tr(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF374151),
+                    color: AppColors.aboutSubText(context),
                   ),
                 ),
               ],
@@ -676,11 +656,7 @@ class _AboutAppPageState extends State<AboutAppPage>
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1F2937), Color(0xFF374151)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColors.contactSectionGradient(context),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Column(

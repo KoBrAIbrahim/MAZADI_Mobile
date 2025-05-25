@@ -74,13 +74,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.12),
                   borderRadius: const BorderRadius.horizontal(
                     left: Radius.circular(10),
                     right: Radius.circular(10),
                   ),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.3),
                     width: 0.8,
                   ),
                   boxShadow: [
@@ -96,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ? Icons.arrow_forward
                       : Icons.arrow_forward,
                   size: 14,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),

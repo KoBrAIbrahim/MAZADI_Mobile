@@ -8,18 +8,23 @@ class CustomDropdownItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.grey, width: 0.5),
+          bottom: BorderSide(
+            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+            width: 0.5,
+          ),
         ),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 20,
-          color: AppColors.primary,
+          color: AppColors.primaryLightDark(context), // ✅ ديناميكي
           fontWeight: FontWeight.w500,
         ),
       ),

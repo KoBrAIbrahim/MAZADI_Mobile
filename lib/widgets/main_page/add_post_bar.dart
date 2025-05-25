@@ -9,7 +9,7 @@ class AddNewPostBar extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -25,14 +25,19 @@ class AddNewPostBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Container(
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F2),
+          color: isDark ? Colors.grey[850] : const Color(0xFFF2F2F2),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: Colors.grey.shade300, width: 1.2),
+          border: Border.all(
+            color: isDark ? Colors.grey[700]! : Colors.grey.shade300,
+            width: 1.2,
+          ),
         ),
         child: Stack(
           children: [
@@ -48,8 +53,8 @@ class AddNewPostBar extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'add_new_post'.tr(),
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: isDark ? Colors.grey[300] : Colors.grey,
                             fontSize: 15,
                           ),
                           textAlign: TextAlign.left,
@@ -89,7 +94,9 @@ class AddNewPostBar extends StatelessWidget {
                         child: SizedBox(
                           width: 150,
                           height: double.infinity,
-                          child: CustomPaint(painter: TopShapePainterFlipped()),
+                          child: CustomPaint(
+                            painter: TopShapePainterFlipped(),
+                          ),
                         ),
                       ),
                       Positioned(
@@ -119,14 +126,14 @@ class AddNewPostBar extends StatelessWidget {
 class BottomShapePainterFlipped extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color.fromARGB(255, 129, 236, 204);
-    final path =
-        Path()
-          ..moveTo(size.width, size.height)
-          ..lineTo(size.width * 0.5, size.height)
-          ..lineTo(0, 0)
-          ..lineTo(size.width, 0)
-          ..close();
+    final paint = Paint()
+      ..color = const Color.fromARGB(255, 129, 236, 204);
+    final path = Path()
+      ..moveTo(size.width, size.height)
+      ..lineTo(size.width * 0.5, size.height)
+      ..lineTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..close();
     canvas.drawPath(path, paint);
   }
 
@@ -137,14 +144,14 @@ class BottomShapePainterFlipped extends CustomPainter {
 class TopShapePainterFlipped extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF8BD6D0).withOpacity(0.6);
-    final path =
-        Path()
-          ..moveTo(size.width / 2, 0)
-          ..lineTo(0, size.height)
-          ..lineTo(size.width, size.height)
-          ..lineTo(size.width, 0)
-          ..close();
+    final paint = Paint()
+      ..color = const Color(0xFF8BD6D0).withOpacity(0.6);
+    final path = Path()
+      ..moveTo(size.width / 2, 0)
+      ..lineTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
     canvas.drawPath(path, paint);
   }
 

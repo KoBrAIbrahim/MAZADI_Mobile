@@ -8,7 +8,7 @@ class LowerBar extends StatelessWidget {
   final Function(int) onTap;
 
   const LowerBar({Key? key, required this.currentIndex, required this.onTap})
-    : super(key: key);
+      : super(key: key);
 
   void _handleTap(BuildContext context, int index) {
     switch (index) {
@@ -36,12 +36,16 @@ class LowerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface
+,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: theme.shadowColor.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -51,9 +55,9 @@ class LowerBar extends StatelessWidget {
         currentIndex: currentIndex,
         onTap: (index) => _handleTap(context, index),
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
+        backgroundColor: theme.colorScheme.surface,
+        selectedItemColor: theme.colorScheme.primary,
+        unselectedItemColor: theme.unselectedWidgetColor,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         items: [
           BottomNavigationBarItem(

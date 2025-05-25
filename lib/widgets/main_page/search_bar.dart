@@ -2,26 +2,29 @@ import 'package:application/screens/Main_User_Pages.dart/filter/filter_page.dart
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
-
 class SearchBarWidget extends StatelessWidget {
   const SearchBarWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    bool isRTL = context.locale.languageCode == 'ar';
+    final isRTL = context.locale.languageCode == 'ar';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       child: Row(
         children: [
-          // ✅ Search bar
           Expanded(
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2),
+                color: theme.cardColor, // ← ديناميكي حسب الثيم
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.grey.shade300, width: 1.2),
+                border: Border.all(
+                  color: isDark ? Colors.grey[700]! : Colors.grey.shade300,
+                  width: 1.2,
+                ),
               ),
               child: Stack(
                 children: [
@@ -31,17 +34,19 @@ class SearchBarWidget extends StatelessWidget {
                       Expanded(
                         child: TextField(
                           textAlign: TextAlign.left,
+                          style: TextStyle(
+                            color: theme.textTheme.bodyLarge?.color,
+                          ),
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.only(left: 4),
                             hintText: "search.hint".tr(),
-                            hintStyle: const TextStyle(color: Colors.grey),
+                            hintStyle: TextStyle(color: Colors.grey[500]),
                             border: InputBorder.none,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  // ✅ الزخرفة تبقى على اليمين فقط دائمًا
                   Align(
                     alignment: Alignment.centerRight,
                     child: ClipRRect(
@@ -54,7 +59,7 @@ class SearchBarWidget extends StatelessWidget {
                         height: double.infinity,
                         child: Stack(
                           children: [
-                             Align(
+                            Align(
                               alignment: Alignment.centerLeft,
                               child: SizedBox(
                                 width: 120,
@@ -64,7 +69,7 @@ class SearchBarWidget extends StatelessWidget {
                                 ),
                               ),
                             ),
-                             Align(
+                            Align(
                               alignment: Alignment.centerRight,
                               child: SizedBox(
                                 width: 150,
@@ -75,7 +80,7 @@ class SearchBarWidget extends StatelessWidget {
                               ),
                             ),
                             const Positioned(
-                              right: 13, // ✅ دايمًا على اليمين
+                              right: 13,
                               top: 11,
                               child: Icon(
                                 Icons.search,
@@ -105,7 +110,7 @@ class SearchBarWidget extends StatelessWidget {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: Colors.white,
+                backgroundColor: theme.scaffoldBackgroundColor, // ← دعم الوضع الليلي
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
@@ -124,6 +129,7 @@ class SearchBarWidget extends StatelessWidget {
     );
   }
 }
+
 
 
 // 🔁 الفاتح (السفلي) – من أسفل يمين ↗ إلى أعلى يسار

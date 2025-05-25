@@ -1,4 +1,6 @@
 import 'package:application/Router/app_route.dart';
+import 'package:application/constants/app_colors.dart';
+import 'package:application/models/ThemeProvider.dart';
 import 'package:application/models/action.dart';
 import 'package:application/models/bid.dart';
 import 'package:application/models/post.dart';
@@ -8,6 +10,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:provider/provider.dart';
 /*
 List<Post> posts = [
   Post(
@@ -241,25 +244,50 @@ final User testUser = User(
   winner_posts: posts_1,
 );
 
+ThemeMode themeModeFromString(String mode) {
+  switch (mode) {
+    case 'light':
+      return ThemeMode.light;
+    case 'dark':
+      return ThemeMode.dark;
+    default:
+      return ThemeMode.system;
+  }
+}
+
+String themeModeToString(ThemeMode mode) {
+  switch (mode) {
+    case ThemeMode.light:
+      return 'light';
+    case ThemeMode.dark:
+      return 'dark';
+    default:
+      return 'system';
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await EasyLocalization.ensureInitialized();
-
   await Hive.initFlutter();
 
-  var settingsBox = await Hive.openBox('settings');
+  // افتح صندوق الإعدادات
+  final settingsBox = await Hive.openBox('settings');
 
-  String? savedLangCode = settingsBox.get('language', defaultValue: 'ar');
-  Locale startLocale = Locale(savedLangCode ?? 'ar');
+  // استرجع اللغة المحفوظة
+  String savedLangCode = settingsBox.get('language', defaultValue: 'ar');
 
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('ar'), Locale('en')],
       path: 'assets/langs',
       fallbackLocale: const Locale('ar'),
-      startLocale: Locale(savedLangCode ?? 'ar'),
-      child: const MazadiApp(),
+      startLocale: Locale(savedLangCode),
+      useOnlyLangCode: true,
+      child: ChangeNotifierProvider(
+        create: (_) => ThemeProvider(), // ربط مزود الثيم
+        child: const MazadiApp(),
+      ),
     ),
   );
 }
@@ -269,21 +297,42 @@ class MazadiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          title: tr('app.title'),
-          theme: ThemeData(
-            fontFamily: 'Cairo',
-            scaffoldBackgroundColor: Colors.white,
-          ),
-          locale: context.locale,
-          supportedLocales: context.supportedLocales,
-          localizationsDelegates: context.localizationDelegates,
-          routerConfig: appRouter,
-        );
-      },
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      title: tr('app.title'),
+
+      // الوضع العادي
+      theme: ThemeData(
+        fontFamily: 'Cairo',
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: const ColorScheme.light(
+          primary: AppColors.primary,
+          secondary: AppColors.secondary,
+        ),
+      ),
+
+      // الوضع الليلي
+      darkTheme: ThemeData(
+        fontFamily: 'Cairo',
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF141414),
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.primaryDark,
+          secondary: AppColors.secondaryDark,
+        ),
+      ),
+
+      themeMode: themeProvider.themeMode, // الوضع الفعلي
+      // اللغات
+      locale: context.locale,
+      supportedLocales: context.supportedLocales,
+      localizationsDelegates: context.localizationDelegates,
+
+      // الراوتر
+      routerConfig: appRouter,
     );
   }
 }

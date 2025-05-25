@@ -5,6 +5,8 @@ import 'package:application/constants/app_colors.dart';
 import 'package:application/widgets/Header/header_build.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import 'package:application/models/ThemeProvider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,9 +19,7 @@ class _SettingsPageState extends State<SettingsPage>
     with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  bool isDarkMode = false;
   String selectedLanguage = 'ar';
-
   late AnimationController _drawerHintController;
   late Animation<Offset> _drawerHintAnimation;
 
@@ -42,9 +42,11 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
   Future<void> _loadSavedLanguage() async {
-    var box = await Hive.openBox('settings');
+    final box = await Hive.openBox('settings');
     String savedLang = box.get('language', defaultValue: 'ar');
-    setState(() => selectedLanguage = savedLang);
+    setState(() {
+      selectedLanguage = savedLang;
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.setLocale(Locale(savedLang));
@@ -59,68 +61,69 @@ class _SettingsPageState extends State<SettingsPage>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.themeMode == ThemeMode.dark;
+
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
-    int currentIndexLowerBar = 0;
- bool isRTL = context.locale.languageCode == 'ar';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isRTL = context.locale.languageCode == 'ar';
+
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: AuctionDrawer(selectedItem: 'settings'),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: buildHeader(screenSize, isTablet, 'settings.title'.tr()),
+        child: buildHeader(context,screenSize, isTablet, 'settings.title'.tr()),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: Stack(
         children: [
           ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             children: [
-              _buildSectionTitle('settings.appearance'.tr()),
-              _buildDarkModeSwitch(),
+              _buildSectionTitle('settings.appearance'.tr(), textColor),
+              _buildDarkModeSwitch(isDarkMode, themeProvider),
               const SizedBox(height: 24),
-              _buildSectionTitle('settings.language'.tr()),
+              _buildSectionTitle('settings.language'.tr(), textColor),
               _buildLanguageSelector(),
             ],
           ),
           Positioned(
             top: MediaQuery.of(context).size.height / 2 - 16,
             left: isRTL ? null : 0,
-            right:isRTL ? 0 : null,
-
+            right: isRTL ? 0 : null,
             child: SlideTransition(
               position: _drawerHintAnimation,
               child: GestureDetector(
                 onTap: () => _scaffoldKey.currentState?.openDrawer(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primaryLightDark(context).withOpacity(0.12),
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(10),
                       right: Radius.circular(10),
                     ),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primaryLightDark(context).withOpacity(0.3),
                       width: 0.8,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.15),
+                        color: AppColors.primaryLightDark(context).withOpacity(0.15),
                         blurRadius: 6,
                         offset: const Offset(0, 1.5),
                       ),
                     ],
                   ),
                   child: Icon(
-                   isRTL
-                        ? Icons.arrow_forward
-                        : Icons.arrow_forward,
+                    isRTL ? Icons.arrow_forward : Icons.arrow_forward,
                     size: 14,
-                    color: AppColors.primary,
+                    color: AppColors.primaryLightDark(context),
                   ),
                 ),
               ),
@@ -129,45 +132,56 @@ class _SettingsPageState extends State<SettingsPage>
         ],
       ),
       bottomNavigationBar: LowerBar(
-        currentIndex: currentIndexLowerBar,
-        onTap: (index) {
-          setState(() => currentIndexLowerBar = index);
-        },
+        currentIndex: 0,
+        onTap: (_) {},
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: textColor,
         ),
       ),
     );
   }
 
-  Widget _buildDarkModeSwitch() {
+  Widget _buildDarkModeSwitch(bool isDarkMode, ThemeProvider provider) {
     return SwitchListTile(
-      title: Text('settings.dark_mode'.tr()),
+      title: Text(
+        'settings.dark_mode'.tr(),
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
       value: isDarkMode,
       onChanged: (value) {
-        setState(() => isDarkMode = value);
+        provider.toggleTheme(value);
       },
-      activeColor: AppColors.primary,
+      activeColor: AppColors.primaryLightDark(context),
     );
   }
 
   Widget _buildLanguageSelector() {
     return DropdownButtonFormField<String>(
       value: selectedLanguage,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        filled: true,
+        fillColor: Theme.of(context)
+            .cardColor
+            .withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.3 : 1.0),
+      ),
+      dropdownColor: Theme.of(context).cardColor,
+      style: TextStyle(
+        color: Theme.of(context).textTheme.bodyLarge?.color,
       ),
       items: [
         DropdownMenuItem(value: 'ar', child: Text('settings.arabic'.tr())),
