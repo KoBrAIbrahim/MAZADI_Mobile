@@ -29,43 +29,45 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
   bool _isExpanded = false;
   String _selectedCategory = '';
 
-  late List<SupportCategory> _categories;
-  late List<FAQItem> _faqItems;
+  List<FAQItem> _faqItems = [];
 
-  @override
-  void initState() {
-    super.initState();
-
-    _categories = [
+  // Remove context-dependent initialization
+  List<SupportCategory> _getCategories() {
+    return [
       SupportCategory(
         icon: Icons.bug_report,
         title: tr('support.categories.bug.title'),
         description: tr('support.categories.bug.description'),
-        color: Colors.red,
-        gradient: [Colors.red.shade400, Colors.red.shade600],
+        color: AppColors.supportCategoryRed(context),
+        gradient: [AppColors.supportCategoryRed(context).withOpacity(0.8), AppColors.supportCategoryRed(context)],
       ),
       SupportCategory(
         icon: Icons.help_outline,
         title: tr('support.categories.help.title'),
         description: tr('support.categories.help.description'),
-        color: Colors.blue,
-        gradient: [Colors.blue.shade400, Colors.blue.shade600],
+        color: AppColors.supportCategoryBlue(context),
+        gradient: [AppColors.supportCategoryBlue(context).withOpacity(0.8), AppColors.supportCategoryBlue(context)],
       ),
       SupportCategory(
         icon: Icons.account_circle,
         title: tr('support.categories.account.title'),
         description: tr('support.categories.account.description'),
-        color: Colors.green,
-        gradient: [Colors.green.shade400, Colors.green.shade600],
+        color: AppColors.supportCategoryGreen(context),
+        gradient: [AppColors.supportCategoryGreen(context).withOpacity(0.8), AppColors.supportCategoryGreen(context)],
       ),
       SupportCategory(
         icon: Icons.payment,
         title: tr('support.categories.payment.title'),
         description: tr('support.categories.payment.description'),
-        color: Colors.orange,
-        gradient: [Colors.orange.shade400, Colors.orange.shade600],
+        color: AppColors.supportCategoryOrange(context),
+        gradient: [AppColors.supportCategoryOrange(context).withOpacity(0.8), AppColors.supportCategoryOrange(context)],
       ),
     ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
 
     _faqItems = [
       FAQItem(
@@ -134,9 +136,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
       drawer: AuctionDrawer(selectedItem: 'support'),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: buildHeader(screenSize, isTablet, tr('support.title')),
+        child: buildHeader(context, screenSize, isTablet, tr('support.title')),
       ),
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppColors.supportPageBackground(context),
       bottomNavigationBar: LowerBar(
         currentIndex: 0,
         onTap: (index) {
@@ -147,15 +149,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
         children: [
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white,
-                  Colors.blue.shade50.withOpacity(0.3),
-                  Colors.purple.shade50.withOpacity(0.2),
-                ],
-              ),
+              gradient: AppColors.supportPageGradient(context),
             ),
           ),
 
@@ -179,10 +173,9 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                   height: 8,
                   width: 15,
                   decoration: BoxDecoration(
-                    color:
-                        _currentPage == index
-                            ? AppColors.primary
-                            : AppColors.primary.withOpacity(0.3),
+                    color: _currentPage == index
+                        ? AppColors.primaryLightDark(context)
+                        : AppColors.primaryLightDark(context).withOpacity(0.3),
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -203,28 +196,21 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withOpacity(0.8),
-                        AppColors.primary,
-                      ],
-                    ),
+                    gradient: AppColors.supportDrawerHintGradient(context),
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(15),
                       right: Radius.circular(15),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primaryLightDark(context).withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Icon(
-                    isRTL
-                        ? Icons.arrow_forward
-                        : Icons.arrow_forward,
+                    isRTL ? Icons.arrow_forward : Icons.arrow_forward,
                     size: 16,
                     color: Colors.white,
                   ),
@@ -248,9 +234,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade400, Colors.blue.shade600],
-                  ),
+                  gradient: AppColors.faqHeaderGradient(context),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.quiz, color: Colors.white, size: 24),
@@ -258,9 +242,10 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               const SizedBox(width: 16),
               Text(
                 tr('support.faq.title'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
             ],
@@ -293,37 +278,47 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
             opacity: value,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.cardBackground(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: AppColors.supportCardBorder(context)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: AppColors.supportCardShadow(context),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: ExpansionTile(
-                title: Text(
-                  faq.question,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  dividerColor: Colors.transparent,
+                  expansionTileTheme: ExpansionTileThemeData(
+                    iconColor: AppColors.textPrimary(context),
+                    collapsedIconColor: AppColors.textSecondary(context),
                   ),
                 ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      faq.answer,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        height: 1.5,
-                      ),
+                child: ExpansionTile(
+                  title: Text(
+                    faq.question,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
-                ],
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        faq.answer,
+                        style: TextStyle(
+                          color: AppColors.supportAnswerText(context),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -343,9 +338,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.purple.shade400, Colors.purple.shade600],
-                  ),
+                  gradient: AppColors.contactHeaderGradient(context),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -357,9 +350,10 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               const SizedBox(width: 16),
               Text(
                 tr('support.contact.title'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
             ],
@@ -371,21 +365,21 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
             icon: Icons.email_outlined,
             title: tr('support.contact.methods.email.title'),
             subtitle: tr('support.contact.methods.email.value'),
-            color: Colors.red,
+            color: AppColors.contactEmailColor(context),
           ),
           const SizedBox(height: 16),
           _buildContactMethod(
             icon: Icons.phone_outlined,
             title: tr('support.contact.methods.phone.title'),
             subtitle: tr('support.contact.methods.phone.value'),
-            color: Colors.green,
+            color: AppColors.contactPhoneColor(context),
           ),
           const SizedBox(height: 16),
           _buildContactMethod(
             icon: Icons.access_time_outlined,
             title: tr('support.contact.methods.hours.title'),
             subtitle: tr('support.contact.methods.hours.value'),
-            color: Colors.orange,
+            color: AppColors.contactHoursColor(context),
           ),
 
           const SizedBox(height: 30),
@@ -394,11 +388,11 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.cardBackground(context),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: AppColors.supportMessageFormShadow(context),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -409,24 +403,33 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
               children: [
                 Text(
                   tr('support.contact.message.title'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _messageController,
                   maxLines: 4,
+                  style: TextStyle(color: AppColors.textPrimary(context)),
                   decoration: InputDecoration(
                     hintText: tr('support.contact.message.placeholder'),
+                    hintStyle: TextStyle(color: AppColors.textSecondary(context)),
+                    fillColor: AppColors.supportTextFieldBackground(context),
+                    filled: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderSide: BorderSide(color: AppColors.supportTextFieldBorder(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.supportTextFieldBorder(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.primary),
+                      borderSide: BorderSide(color: AppColors.primaryLightDark(context)),
                     ),
                   ),
                 ),
@@ -439,12 +442,13 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(tr('support.contact.message.success')),
+                          backgroundColor: AppColors.primaryLightDark(context),
                         ),
                       );
                       _messageController.clear();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primaryLightDark(context),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -477,7 +481,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2)),
         boxShadow: [
@@ -504,15 +508,19 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -533,22 +541,25 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient:
-              isActive
-                  ? LinearGradient(
-                    colors: [
-                      AppColors.primary,
-                      AppColors.primary.withOpacity(0.8),
-                    ],
-                  )
-                  : LinearGradient(colors: [Colors.white, Colors.grey.shade50]),
+          gradient: isActive
+              ? LinearGradient(
+                  colors: [
+                    AppColors.primaryLightDark(context),
+                    AppColors.primaryLightDark(context).withOpacity(0.8),
+                  ],
+                )
+              : LinearGradient(
+                  colors: [
+                    AppColors.cardBackground(context),
+                    AppColors.supportFloatingInactive(context),
+                  ],
+                ),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color:
-                  isActive
-                      ? AppColors.primary.withOpacity(0.3)
-                      : Colors.grey.withOpacity(0.2),
+              color: isActive
+                  ? AppColors.primaryLightDark(context).withOpacity(0.3)
+                  : AppColors.supportFloatingInactiveShadow(context),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -556,7 +567,7 @@ class _TechnicalSupportPageState extends State<TechnicalSupportPage>
         ),
         child: Icon(
           icon,
-          color: isActive ? Colors.white : Colors.grey.shade700,
+          color: isActive ? Colors.white : AppColors.textSecondary(context),
           size: 24,
         ),
       ),

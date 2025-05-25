@@ -89,13 +89,12 @@ class _AddPostPageState extends State<AddPostPage>
     if (picked != null && picked.isNotEmpty) {
       setState(() {
         if (images.length + picked.length > 5) {
-          // Limit to 5 images
           images.addAll(picked.take(5 - images.length));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Maximum 5 images allowed'),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.amber.shade800,
+              backgroundColor: AppColors.warning(context),
             ),
           );
         } else {
@@ -117,7 +116,6 @@ class _AddPostPageState extends State<AddPostPage>
         descriptionPoints.add(descriptionController.text);
         descriptionController.clear();
       });
-      // Scroll to bottom of description list
       Future.delayed(Duration(milliseconds: 100), () {
         if (_descriptionScrollController.hasClients) {
           _descriptionScrollController.animateTo(
@@ -148,30 +146,40 @@ class _AddPostPageState extends State<AddPostPage>
       setState(() {
         isSubmitting = false;
       });
-      // Show success
       showDialog(
         context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green),
-                  SizedBox(width: 10),
-                  Text("success".tr()),
-                ],
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.cardBackground(context),
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: AppColors.success(context),
               ),
-              content: Text("post_success".tr()),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // Reset form
-                    resetForm();
-                  },
-                  child: Text("ok".tr()),
-                ),
-              ],
+              SizedBox(width: 10),
+              Text(
+                "success".tr(),
+                style: TextStyle(color: AppColors.textPrimary(context)),
+              ),
+            ],
+          ),
+          content: Text(
+            "post_success".tr(),
+            style: TextStyle(color: AppColors.textSecondary(context)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                resetForm();
+              },
+              child: Text(
+                "ok".tr(),
+                style: TextStyle(color: AppColors.primaryLightDark(context)),
+              ),
             ),
+          ],
+        ),
       );
     });
   }
@@ -198,7 +206,7 @@ class _AddPostPageState extends State<AddPostPage>
         SnackBar(
           content: Text(errorMessage),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red.shade800,
+          backgroundColor: AppColors.error(context),
         ),
       );
       return false;
@@ -223,22 +231,27 @@ class _AddPostPageState extends State<AddPostPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    final cardBackground = isDarkMode ? Color(0xFF1E1E1E) : Colors.white;
 
     return Scaffold(
+      backgroundColor: AppColors.scaffoldBackground(context),
       appBar: AppBar(
         title: Text(
           "create_auction".tr(),
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary(context),
+          ),
         ),
+        backgroundColor: AppColors.cardBackground(context),
+        iconTheme: IconThemeData(color: AppColors.textPrimary(context)),
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.restart_alt),
+            icon: Icon(
+              Icons.restart_alt,
+              color: AppColors.textSecondary(context),
+            ),
             onPressed: resetForm,
             tooltip: "reset_form".tr(),
           ),
@@ -248,14 +261,7 @@ class _AddPostPageState extends State<AddPostPage>
         opacity: _animation,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors:
-                  isDarkMode
-                      ? [Color(0xFF121212), Color(0xFF262626)]
-                      : [Color(0xFFF5F5F5), Color(0xFFE8E8E8)],
-            ),
+            gradient: AppColors.subtleGradient(context),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -269,9 +275,9 @@ class _AddPostPageState extends State<AddPostPage>
                   // Progress Indicator
                   LinearProgressIndicator(
                     value: _calculateProgress(),
-                    backgroundColor: Colors.grey.withOpacity(0.2),
+                    backgroundColor: AppColors.progressBackground(context),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.secondary,
+                      AppColors.primaryLightDark(context),
                     ),
                   ),
 
@@ -280,7 +286,7 @@ class _AddPostPageState extends State<AddPostPage>
                     child: Text(
                       "form_hint".tr(),
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary(context),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -292,340 +298,15 @@ class _AddPostPageState extends State<AddPostPage>
                   _buildSectionTitle("choose_category".tr(), Icons.category),
                   const SizedBox(height: 16),
 
-                  Container(
-                    decoration: BoxDecoration(
-                      color: cardBackground,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Category chips
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children:
-                                categories.map((category) {
-                                  final isSelected =
-                                      selectedCategory == category['label'];
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedCategory = category['label'];
-                                      });
-                                      // Add haptic feedback
-                                      HapticFeedback.lightImpact();
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: Duration(milliseconds: 200),
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            isSelected
-                                                ? category['color'].withOpacity(
-                                                  0.9,
-                                                )
-                                                : category['color'].withOpacity(
-                                                  0.1,
-                                                ),
-                                        borderRadius: BorderRadius.circular(15),
-                                        border: Border.all(
-                                          color:
-                                              isSelected
-                                                  ? category['color']
-                                                  : Colors.transparent,
-                                          width: 2,
-                                        ),
-                                        boxShadow:
-                                            isSelected
-                                                ? [
-                                                  BoxShadow(
-                                                    color: category['color']
-                                                        .withOpacity(0.3),
-                                                    blurRadius: 8,
-                                                    offset: Offset(0, 2),
-                                                  ),
-                                                ]
-                                                : [],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            category['icon'],
-                                            color:
-                                                isSelected
-                                                    ? Colors.white
-                                                    : category['color'],
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            category['label'],
-                                            style: TextStyle(
-                                              fontWeight:
-                                                  isSelected
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                              color:
-                                                  isSelected
-                                                      ? Colors.white
-                                                      : category['color'],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildCategorySection(),
 
                   const SizedBox(height: 24),
 
-                  // Title
+                  // Item Details
                   _buildSectionTitle("item_details".tr(), Icons.description),
                   const SizedBox(height: 8),
 
-                  Container(
-                    decoration: BoxDecoration(
-                      color: cardBackground,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextField(
-                            controller: titleController,
-                            style: TextStyle(fontSize: 16),
-                            decoration: InputDecoration(
-                              labelText: 'Title',
-                              hintText: 'Enter a descriptive title',
-                              prefixIcon: Icon(Icons.title),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              floatingLabelBehavior: FloatingLabelBehavior.auto,
-                              filled: true,
-                              fillColor:
-                                  isDarkMode
-                                      ? Colors.grey.shade900
-                                      : Colors.grey.shade50,
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Description
-                          Text(
-                            "description_points".tr(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            height: descriptionPoints.isEmpty ? 60 : 120,
-                            decoration: BoxDecoration(
-                              color:
-                                  isDarkMode
-                                      ? Colors.grey.shade900
-                                      : Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.grey.withOpacity(0.3),
-                              ),
-                            ),
-                            child:
-                                descriptionPoints.isEmpty
-                                    ? Center(
-                                      child: Text(
-                                        "no_description".tr(),
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    )
-                                    : ListView.separated(
-                                      controller: _descriptionScrollController,
-                                      padding: EdgeInsets.all(8),
-                                      itemCount: descriptionPoints.length,
-                                      separatorBuilder:
-                                          (context, index) =>
-                                              Divider(height: 1),
-                                      itemBuilder: (context, index) {
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.check_circle,
-                                                color: AppColors.primary,
-                                                size: 18,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  descriptionPoints[index],
-                                                  style: TextStyle(
-                                                    fontSize: 15,
-                                                  ),
-                                                ),
-                                              ),
-                                              IconButton(
-                                                icon: Icon(
-                                                  Icons.delete_outline,
-                                                  size: 18,
-                                                ),
-                                                color: Colors.red.shade400,
-                                                onPressed:
-                                                    () =>
-                                                        removeDescriptionPoint(
-                                                          index,
-                                                        ),
-                                                padding: EdgeInsets.zero,
-                                                constraints: BoxConstraints(),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: descriptionController,
-                                  style: TextStyle(fontSize: 16),
-                                  decoration: InputDecoration(
-                                    hintText: "add_description".tr(),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        isDarkMode
-                                            ? Colors.grey.shade900
-                                            : Colors.grey.shade50,
-                                    prefixIcon: Icon(Icons.add_circle_outline),
-                                  ),
-                                  onSubmitted: (_) => addPointToDescription(),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                height: 56,
-                                width: 56,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: IconButton(
-                                  icon: Icon(Icons.add, color: Colors.white),
-                                  onPressed: addPointToDescription,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Price Details
-                          Text(
-                            "pricing_info".tr(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: startPriceController,
-                                  keyboardType: TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  style: TextStyle(fontSize: 16),
-                                  decoration: InputDecoration(
-                                    labelText: "start_price".tr(),
-                                    prefixIcon: Icon(Icons.attach_money),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        isDarkMode
-                                            ? Colors.grey.shade900
-                                            : Colors.grey.shade50,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextField(
-                                  controller: bidStepController,
-                                  keyboardType: TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  style: TextStyle(fontSize: 16),
-                                  decoration: InputDecoration(
-                                    labelText: "bid_step".tr(),
-                                    prefixIcon: Icon(Icons.trending_up),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        isDarkMode
-                                            ? Colors.grey.shade900
-                                            : Colors.grey.shade50,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildItemDetailsSection(),
 
                   const SizedBox(height: 24),
 
@@ -634,274 +315,19 @@ class _AddPostPageState extends State<AddPostPage>
                   const SizedBox(height: 8),
                   Text(
                     "upload_note".tr(),
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 8),
 
-                  Container(
-                    decoration: BoxDecoration(
-                      color: cardBackground,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Image grid
-                        images.isEmpty
-                            ? GestureDetector(
-                              onTap: pickImages,
-                              child: Container(
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.grey.shade900
-                                          : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.grey.withOpacity(0.3),
-                                    style: BorderStyle.solid,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.add_photo_alternate,
-                                        size: 48,
-                                        color: Colors.grey,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        "tap_add_images".tr(),
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                            : Container(
-                              height: 200,
-                              child: GridView.builder(
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: screenWidth > 600 ? 5 : 3,
-                                      crossAxisSpacing: 8,
-                                      mainAxisSpacing: 8,
-                                      childAspectRatio: 1,
-                                    ),
-                                itemCount:
-                                    images.length < 5
-                                        ? images.length + 1
-                                        : images.length,
-                                itemBuilder: (context, index) {
-                                  if (index == images.length &&
-                                      images.length < 5) {
-                                    return GestureDetector(
-                                      onTap: pickImages,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.grey.shade900
-                                                  : Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey.withOpacity(0.3),
-                                            style: BorderStyle.solid,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.add_photo_alternate,
-                                            size: 32,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }
-
-                                  return Stack(
-                                    children: [
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.1,
-                                              ),
-                                              blurRadius: 5,
-                                              offset: Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          child: Image.file(
-                                            File(images[index].path),
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: GestureDetector(
-                                          onTap: () => removeImage(index),
-                                          child: Container(
-                                            padding: EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red.withOpacity(
-                                                0.8,
-                                              ),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.close,
-                                              size: 16,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      // Show if main image
-                                      if (index == 0)
-                                        Positioned(
-                                          bottom: 4,
-                                          left: 4,
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary
-                                                  .withOpacity(0.8),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              "main_image".tr(),
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-
-                        if (images.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              "main_image_note".tr(),
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                  _buildImageSection(screenWidth),
 
                   const SizedBox(height: 32),
 
                   // Submit Button
-                  Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.secondary],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: isSubmitting ? null : submitPost,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                      ),
-                      child:
-                          isSubmitting
-                              ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    "creating_auction".tr(),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              )
-                              : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.gavel, color: Colors.white),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    "post_auction".tr(),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                    ),
-                  ),
+                  _buildSubmitButton(),
 
                   const SizedBox(height: 24),
                 ],
@@ -916,13 +342,647 @@ class _AddPostPageState extends State<AddPostPage>
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.primaryLightDark(context),
+        ),
         SizedBox(width: 8),
         Text(
           title,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary(context),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground(context),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight(context),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: categories.map((category) {
+                final isSelected = selectedCategory == category['label'];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedCategory = category['label'];
+                    });
+                    HapticFeedback.lightImpact();
+                  },
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 200),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? category['color'].withOpacity(0.9)
+                          : AppColors.getCategoryChipBackground(
+                              context,
+                              category['color'],
+                            ),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: isSelected
+                            ? category['color']
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: category['color'].withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          category['icon'],
+                          color: isSelected
+                              ? Colors.white
+                              : category['color'],
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          category['label'],
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? Colors.white
+                                : category['color'],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemDetailsSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground(context),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight(context),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title Field
+            TextField(
+              controller: titleController,
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textPrimary(context),
+              ),
+              decoration: InputDecoration(
+                labelText: 'Title',
+                labelStyle: TextStyle(color: AppColors.textSecondary(context)),
+                hintText: 'Enter a descriptive title',
+                hintStyle: TextStyle(color: AppColors.textSecondary(context)),
+                prefixIcon: Icon(
+                  Icons.title,
+                  color: AppColors.textSecondary(context),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: AppColors.divider(context)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: AppColors.divider(context)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color: AppColors.primaryLightDark(context),
+                  ),
+                ),
+                floatingLabelBehavior: FloatingLabelBehavior.auto,
+                filled: true,
+                fillColor: AppColors.inputFieldBackground(context),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Description Points
+            Text(
+              "description_points".tr(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildDescriptionSection(),
+
+            const SizedBox(height: 20),
+
+            // Pricing
+            Text(
+              "pricing_info".tr(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildPricingFields(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescriptionSection() {
+    return Column(
+      children: [
+        Container(
+          height: descriptionPoints.isEmpty ? 60 : 120,
+          decoration: BoxDecoration(
+            color: AppColors.inputFieldBackground(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.divider(context),
+            ),
+          ),
+          child: descriptionPoints.isEmpty
+              ? Center(
+                  child: Text(
+                    "no_description".tr(),
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  controller: _descriptionScrollController,
+                  padding: EdgeInsets.all(8),
+                  itemCount: descriptionPoints.length,
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    color: AppColors.divider(context),
+                  ),
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: AppColors.primaryLightDark(context),
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              descriptionPoints[index],
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppColors.textPrimary(context),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: AppColors.error(context),
+                            ),
+                            onPressed: () => removeDescriptionPoint(index),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: descriptionController,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textPrimary(context),
+                ),
+                decoration: InputDecoration(
+                  hintText: "add_description".tr(),
+                  hintStyle: TextStyle(color: AppColors.textSecondary(context)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.divider(context)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.divider(context)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: AppColors.primaryLightDark(context),
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: AppColors.inputFieldBackground(context),
+                  prefixIcon: Icon(
+                    Icons.add_circle_outline,
+                    color: AppColors.textSecondary(context),
+                  ),
+                ),
+                onSubmitted: (_) => addPointToDescription(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              height: 56,
+              width: 56,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient(context),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryLightDark(context).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(Icons.add, color: Colors.white),
+                onPressed: addPointToDescription,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPricingFields() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: startPriceController,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textPrimary(context),
+            ),
+            decoration: InputDecoration(
+              labelText: "start_price".tr(),
+              labelStyle: TextStyle(color: AppColors.textSecondary(context)),
+              prefixIcon: Icon(
+                Icons.attach_money,
+                color: AppColors.textSecondary(context),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: AppColors.divider(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: AppColors.divider(context)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: AppColors.primaryLightDark(context),
+                ),
+              ),
+              filled: true,
+              fillColor: AppColors.inputFieldBackground(context),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: TextField(
+            controller: bidStepController,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textPrimary(context),
+            ),
+            decoration: InputDecoration(
+              labelText: "bid_step".tr(),
+              labelStyle: TextStyle(color: AppColors.textSecondary(context)),
+              prefixIcon: Icon(
+                Icons.trending_up,
+                color: AppColors.textSecondary(context),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: AppColors.divider(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: AppColors.divider(context)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: AppColors.primaryLightDark(context),
+                ),
+              ),
+              filled: true,
+              fillColor: AppColors.inputFieldBackground(context),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageSection(double screenWidth) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground(context),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight(context),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          images.isEmpty
+              ? GestureDetector(
+                  onTap: pickImages,
+                  child: Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: AppColors.imageUploadBackground(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.divider(context),
+                        style: BorderStyle.solid,
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate,
+                            size: 48,
+                            color: AppColors.textSecondary(context),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "tap_add_images".tr(),
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : Container(
+                  height: 200,
+                  child: GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: screenWidth > 600 ? 5 : 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: images.length < 5 ? images.length + 1 : images.length,
+                    itemBuilder: (context, index) {
+                      if (index == images.length && images.length < 5) {
+                        return GestureDetector(
+                          onTap: pickImages,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.imageUploadBackground(context),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.divider(context),
+                                style: BorderStyle.solid,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.add_photo_alternate,
+                                size: 32,
+                                color: AppColors.textSecondary(context),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.shadowLight(context),
+                                  blurRadius: 5,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                File(images[index].path),
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => removeImage(index),
+                              child: Container(
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.error(context).withOpacity(0.8),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (index == 0)
+                            Positioned(
+                              bottom: 4,
+                              left: 4,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryLightDark(context)
+                                      .withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  "main_image".tr(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+
+          if (images.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                "main_image_note".tr(),
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        gradient: AppColors.primaryGradient(context),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryLightDark(context).withOpacity(0.3),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: isSubmitting ? null : submitPost,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+        child: isSubmitting
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    "creating_auction".tr(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.gavel, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    "post_auction".tr(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -934,8 +994,7 @@ class _AddPostPageState extends State<AddPostPage>
     if (titleController.text.isNotEmpty) completedFields++;
     if (descriptionPoints.isNotEmpty) completedFields++;
     if (startPriceController.text.isNotEmpty &&
-        bidStepController.text.isNotEmpty)
-      completedFields++;
+        bidStepController.text.isNotEmpty) completedFields++;
     if (images.isNotEmpty) completedFields++;
 
     return completedFields / totalFields;

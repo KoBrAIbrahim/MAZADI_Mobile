@@ -20,9 +20,11 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
     final size = MediaQuery.of(context).size;
     final width = size.width;
     final height = size.height;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: BlurredBackground(
         child: LayoutBuilder(
@@ -52,8 +54,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                         // Title
                         Text(
                           'create_account'.tr(),
-                          style: const TextStyle(
-                            fontSize: 24,
+                          style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -61,7 +62,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                         Container(
                           width: width * 0.3,
                           height: 2,
-                          color: AppColors.primary,
+                          color: colorScheme.primary,
                         ),
 
                         SizedBox(height: height * 0.04),
@@ -70,6 +71,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                         _buildInput(
                           hint: 'email_hint'.tr(),
                           icon: Icons.email_outlined,
+                          colorScheme: colorScheme,
                         ),
                         SizedBox(height: height * 0.03),
 
@@ -84,6 +86,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                               _isPasswordVisible = !_isPasswordVisible;
                             });
                           },
+                          colorScheme: colorScheme,
                         ),
                         SizedBox(height: height * 0.03),
 
@@ -98,6 +101,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                               _isConfirmVisible = !_isConfirmVisible;
                             });
                           },
+                          colorScheme: colorScheme,
                         ),
                         SizedBox(height: height * 0.06),
 
@@ -110,15 +114,15 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                               context.go('/confirm_signup_page');
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
+                              backgroundColor: colorScheme.secondary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             child: Text(
                               'submit'.tr(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: colorScheme.onSecondary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -137,20 +141,19 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                               },
                               child: Row(
                                 children: [
-                                  const CircleAvatar(
+                                  CircleAvatar(
                                     radius: 18,
-                                    backgroundColor: AppColors.secondary,
+                                    backgroundColor: colorScheme.secondary,
                                     child: Icon(
                                       Icons.arrow_back,
-                                      color: Colors.white,
+                                      color: colorScheme.onSecondary,
                                     ),
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
                                     'back'.tr(),
-                                    style: const TextStyle(
+                                    style: theme.textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 18,
                                     ),
                                   ),
                                 ],
@@ -178,33 +181,30 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
     bool obscure = false,
     bool isPassword = false,
     VoidCallback? toggleVisibility,
+    required ColorScheme colorScheme,
   }) {
     return TextField(
       obscureText: obscure,
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
-        suffixIcon:
-            isPassword
-                ? GestureDetector(
-                  onTap: toggleVisibility,
-                  child: Icon(
-                    obscure ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                )
-                : null,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 12,
-          horizontal: 16,
-        ),
+        prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
+        suffixIcon: isPassword
+            ? GestureDetector(
+                onTap: toggleVisibility,
+                child: Icon(
+                  obscure ? Icons.visibility_off : Icons.visibility,
+                  color: colorScheme.onSurface.withOpacity(0.6),
+                ),
+              )
+            : null,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.primary),
+          borderSide: BorderSide(color: colorScheme.primary),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
       ),
     );

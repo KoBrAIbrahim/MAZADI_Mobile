@@ -93,15 +93,11 @@ class _EditProfileSheetState extends State<EditProfileSheet>
         horizontal: isTablet ? 24 : 16,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColors.primaryGradient(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primaryLightDark(context).withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -115,7 +111,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
             width: isTablet ? 60 : 50,
             margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: AppColors.handleColor(context),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -199,7 +195,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               style: TextStyle(
                 fontSize: isTablet ? 16 : 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: AppColors.textSecondary(context),
               ),
             ),
           ),
@@ -208,7 +204,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: AppColors.shadowLight(context),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -220,34 +216,38 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               style: TextStyle(
                 fontSize: isTablet ? 18 : 16,
                 fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary(context),
               ),
               decoration: InputDecoration(
                 prefixIcon: Container(
                   margin: const EdgeInsets.all(12),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primaryLightDark(context).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     icon,
-                    color: AppColors.primary,
+                    color: AppColors.primaryLightDark(context),
                     size: isTablet ? 22 : 18,
                   ),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.cardBackground(context),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(color: AppColors.divider(context)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  borderSide: BorderSide(
+                    color: AppColors.primaryLightDark(context),
+                    width: 2,
+                  ),
                 ),
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: isTablet ? 20 : 16,
@@ -283,7 +283,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               style: TextStyle(
                 fontSize: isTablet ? 16 : 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: AppColors.textSecondary(context),
               ),
             ),
           ),
@@ -292,7 +292,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: AppColors.shadowLight(context),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -303,52 +303,60 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               style: TextStyle(
                 fontSize: isTablet ? 18 : 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                color: AppColors.textPrimary(context),
               ),
+              dropdownColor: AppColors.cardBackground(context),
               decoration: InputDecoration(
                 prefixIcon: Container(
                   margin: const EdgeInsets.all(12),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primaryLightDark(context).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     icon,
-                    color: AppColors.primary,
+                    color: AppColors.primaryLightDark(context),
                     size: isTablet ? 22 : 18,
                   ),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.cardBackground(context),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(color: AppColors.divider(context)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  borderSide: BorderSide(
+                    color: AppColors.primaryLightDark(context),
+                    width: 2,
+                  ),
                 ),
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: isTablet ? 20 : 16,
                   vertical: isTablet ? 20 : 16,
                 ),
               ),
-              items:
-                  items.map((item) {
-                    return DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item),
-                    );
-                  }).toList(),
+              items: items.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                    ),
+                  ),
+                );
+              }).toList(),
               onChanged: onChanged,
               icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
-                color: AppColors.primary,
+                color: AppColors.primaryLightDark(context),
                 size: isTablet ? 28 : 24,
               ),
             ),
@@ -369,7 +377,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
           borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withOpacity(0.3),
+              color: AppColors.passwordButtonShadow(context),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -394,21 +402,20 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder:
-                  (_) => Container(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                    ),
-                    child: ChangePasswordPage(user: widget.user),
+              builder: (_) => Container(
+                height: MediaQuery.of(context).size.height * 0.7,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground(context),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
                   ),
+                ),
+                child: ChangePasswordPage(user: widget.user),
+              ),
             );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange.shade600,
+            backgroundColor: AppColors.passwordButtonBackground(context),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
@@ -433,36 +440,31 @@ class _EditProfileSheetState extends State<EditProfileSheet>
       height: isTablet ? 60 : 50,
       margin: EdgeInsets.symmetric(vertical: isTablet ? 16 : 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.secondary],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: AppColors.primaryGradient(context),
         borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.4),
+            color: AppColors.primaryLightDark(context).withOpacity(0.4),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
         ],
       ),
       child: ElevatedButton.icon(
-        icon:
-            _isLoading
-                ? SizedBox(
-                  width: isTablet ? 22 : 18,
-                  height: isTablet ? 22 : 18,
-                  child: const CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                : Icon(
-                  Icons.save_outlined,
+        icon: _isLoading
+            ? SizedBox(
+                width: isTablet ? 22 : 18,
+                height: isTablet ? 22 : 18,
+                child: const CircularProgressIndicator(
                   color: Colors.white,
-                  size: isTablet ? 24 : 20,
+                  strokeWidth: 2,
                 ),
+              )
+            : Icon(
+                Icons.save_outlined,
+                color: Colors.white,
+                size: isTablet ? 24 : 20,
+              ),
         label: Text(
           _isLoading ? tr('profile.save.loading') : tr('profile.save.button'),
           style: TextStyle(
@@ -502,7 +504,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               Text(tr('profile.save.success')),
             ],
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success(context),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -521,21 +523,23 @@ class _EditProfileSheetState extends State<EditProfileSheet>
       margin: EdgeInsets.only(bottom: isTablet ? 24 : 20),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AppColors.getInfoCardBackground(context, AppColors.info(context)),
         borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(
+          color: AppColors.getInfoCardBorder(context, AppColors.info(context)),
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(isTablet ? 12 : 10),
             decoration: BoxDecoration(
-              color: Colors.blue.shade100,
+              color: AppColors.getInfoIconBackground(context),
               borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
             ),
             child: Icon(
               Icons.info_outline,
-              color: Colors.blue.shade700,
+              color: AppColors.info(context),
               size: isTablet ? 24 : 20,
             ),
           ),
@@ -548,7 +552,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   tr('profile.info.title'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
+                    color: AppColors.info(context),
                     fontSize: isTablet ? 16 : 14,
                   ),
                 ),
@@ -556,7 +560,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                 Text(
                   tr('profile.info.message'),
                   style: TextStyle(
-                    color: Colors.blue.shade600,
+                    color: AppColors.info(context),
                     fontSize: isTablet ? 14 : 12,
                     height: 1.3,
                   ),
@@ -585,15 +589,21 @@ class _EditProfileSheetState extends State<EditProfileSheet>
         child: Container(
           height: MediaQuery.of(context).size.height * (isTablet ? 0.85 : 0.9),
           width: maxWidth,
-          margin:
-              screenSize.width > 1200
-                  ? EdgeInsets.symmetric(
-                    horizontal: (screenSize.width - maxWidth) / 2,
-                  )
-                  : EdgeInsets.zero,
+          margin: screenSize.width > 1200
+              ? EdgeInsets.symmetric(
+                  horizontal: (screenSize.width - maxWidth) / 2,
+                )
+              : EdgeInsets.zero,
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: AppColors.scaffoldBackground(context),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowStrong(context),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -641,7 +651,9 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                         ),
                         child: Row(
                           children: [
-                            Expanded(child: Divider(color: Colors.grey[300])),
+                            Expanded(
+                              child: Divider(color: AppColors.divider(context)),
+                            ),
                             Padding(
                               padding: EdgeInsets.symmetric(
                                 horizontal: isTablet ? 16 : 12,
@@ -649,13 +661,15 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                               child: Text(
                                 tr('profile.security.title'),
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary(context),
                                   fontSize: isTablet ? 14 : 12,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider(color: Colors.grey[300])),
+                            Expanded(
+                              child: Divider(color: AppColors.divider(context)),
+                            ),
                           ],
                         ),
                       ),

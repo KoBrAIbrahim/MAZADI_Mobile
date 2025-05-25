@@ -1,18 +1,19 @@
 import 'package:application/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 
-Widget buildHeader(Size screenSize, bool isTablet, String title) {
+Widget buildHeader(BuildContext context, Size screenSize, bool isTablet, String title) {
   final headerPadding = screenSize.width * 0.05;
   final logoSize = isTablet ? 40.0 : screenSize.width * 0.08;
   final titleSize = isTablet ? 28.0 : screenSize.width * 0.06;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
 
   return Container(
     padding: EdgeInsets.all(headerPadding),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.black26 : Colors.black12,
           blurRadius: 10,
           offset: const Offset(0, 2),
         ),
@@ -26,18 +27,18 @@ Widget buildHeader(Size screenSize, bool isTablet, String title) {
             Container(
               padding: EdgeInsets.all(screenSize.width * 0.02),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
+                color: AppColors.secondaryLightDark(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Image.asset('assets/images/logo.png', height: logoSize),
             ),
             SizedBox(width: screenSize.width * 0.04),
             Text(
-              title, // ✅ تم التعديل هنا
+              title,
               style: TextStyle(
                 fontSize: titleSize,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ],
@@ -49,8 +50,8 @@ Widget buildHeader(Size screenSize, bool isTablet, String title) {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.secondary,
-                AppColors.secondary.withOpacity(0.5),
+                AppColors.secondaryLightDark(context),
+                AppColors.secondaryLightDark(context).withOpacity(0.5),
               ],
             ),
             borderRadius: BorderRadius.circular(2),

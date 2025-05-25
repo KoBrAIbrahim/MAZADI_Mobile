@@ -26,14 +26,15 @@ class _SignUpPageState extends State<SignUpPage> {
     final size = MediaQuery.of(context).size;
     final width = size.width;
     final height = size.height;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: BlurredBackground(
         child: Stack(
           children: [
-            // ✅ Main content (scrollable)
             Positioned.fill(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: width * 0.08),
@@ -41,8 +42,6 @@ class _SignUpPageState extends State<SignUpPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(height: height * 0.05),
-
-                    // Logo
                     Center(
                       child: Image.asset(
                         'assets/images/logo.png',
@@ -50,13 +49,10 @@ class _SignUpPageState extends State<SignUpPage> {
                         fit: BoxFit.contain,
                       ),
                     ),
-
                     SizedBox(height: height * 0.04),
-
                     Text(
                       'create_account'.tr(),
-                      style: const TextStyle(
-                        fontSize: 24,
+                      style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -64,16 +60,16 @@ class _SignUpPageState extends State<SignUpPage> {
                     Container(
                       width: width * 0.3,
                       height: 2,
-                      color: AppColors.primary,
+                      color: colorScheme.primary,
                     ),
                     SizedBox(height: height * 0.04),
-
                     Row(
                       children: [
                         Expanded(
                           child: _buildInput(
                             'first_name'.tr(),
                             icon: Icons.person,
+                            colorScheme: colorScheme,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -81,36 +77,31 @@ class _SignUpPageState extends State<SignUpPage> {
                           child: _buildInput(
                             'last_name'.tr(),
                             icon: Icons.person,
+                            colorScheme: colorScheme,
                           ),
                         ),
                       ],
                     ),
-
                     SizedBox(height: height * 0.03),
                     _buildInput(
                       'mobile_number'.tr(),
                       hint: 'phone_number_hint'.tr(),
                       icon: Icons.phone,
+                      colorScheme: colorScheme,
                     ),
                     SizedBox(height: height * 0.03),
-                    _buildDropdown('city'.tr()),
+                    _buildDropdown('city'.tr(), colorScheme),
                     SizedBox(height: height * 0.03),
-
                     Row(
                       children: [
-                        const Icon(
-                          Icons.person_outline,
-                          size: 20,
-                          color: Colors.black,
-                        ),
+                        Icon(Icons.person_outline, size: 20, color: colorScheme.onSurface),
                         const SizedBox(width: 6),
                         Text(
                           'gender'.tr(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -122,6 +113,7 @@ class _SignUpPageState extends State<SignUpPage> {
                               selectedGender = 'male'.tr();
                             });
                           },
+                          colorScheme: colorScheme,
                         ),
                         _buildCustomCheckbox(
                           label: 'female'.tr(),
@@ -131,17 +123,15 @@ class _SignUpPageState extends State<SignUpPage> {
                               selectedGender = 'female'.tr();
                             });
                           },
+                          colorScheme: colorScheme,
                         ),
                       ],
                     ),
-
-                    // Enough space to avoid covering the fixed button
                     const SizedBox(height: 120),
                   ],
                 ),
               ),
             ),
-
             Positioned(
               bottom: 20,
               right: width * 0.08,
@@ -149,48 +139,44 @@ class _SignUpPageState extends State<SignUpPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 🔙 Back button with same design as "Continue"
                   GestureDetector(
-                    onTap: () {
-                      context.go('/login');
-                    },
+                    onTap: () => context.go('/login'),
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 18,
-                          backgroundColor: AppColors.secondary,
-                          child: Icon(Icons.arrow_back, color: Colors.white),
+                          backgroundColor: colorScheme.secondary,
+                          child: Icon(Icons.arrow_back, color: colorScheme.onSecondary),
                         ),
                         const SizedBox(width: 10),
                         Text(
                           'back'.tr(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
                     ),
                   ),
-
                   GestureDetector(
-                    onTap: () {
-                      context.go('/account_signup_page');
-                    },
+                    onTap: () => context.go('/account_signup_page'),
                     child: Row(
                       children: [
                         Text(
                           'continue'.tr(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 18,
-                          backgroundColor: AppColors.secondary,
-                          child: Icon(Icons.arrow_forward, color: Colors.white),
+                          backgroundColor: colorScheme.secondary,
+                          child: Icon(Icons.arrow_forward, color: colorScheme.onSecondary),
                         ),
                       ],
                     ),
@@ -204,38 +190,37 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _buildInput(String label, {String? hint, IconData? icon}) {
+  Widget _buildInput(String label, {String? hint, IconData? icon, required ColorScheme colorScheme}) {
     return TextField(
       decoration: InputDecoration(
         hintText: hint ?? label,
-        prefixIcon:
-            icon != null ? Icon(icon, size: 20, color: Colors.black) : null,
-        hintStyle: const TextStyle(color: Colors.grey),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.primary),
+        prefixIcon: icon != null ? Icon(icon, size: 20, color: colorScheme.primary) : null,
+        hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colorScheme.primary),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
       ),
     );
   }
 
-  Widget _buildDropdown(String label) {
+  Widget _buildDropdown(String label, ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.location_city, size: 18, color: Colors.black),
+            Icon(Icons.location_city, size: 18, color: colorScheme.onSurface),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
           ],
         ),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.background,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -245,7 +230,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ],
             border: Border.all(
-              color: AppColors.primary.withOpacity(0.3),
+              color: colorScheme.primary.withOpacity(0.3),
               width: 1.5,
             ),
           ),
@@ -256,27 +241,24 @@ class _SignUpPageState extends State<SignUpPage> {
               isExpanded: true,
               icon: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: AppColors.primary,
-                ),
+                child: Icon(Icons.keyboard_arrow_down, color: colorScheme.primary),
               ),
-              style: const TextStyle(
-                color: Colors.black87,
+              style: TextStyle(
+                color: colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
-              dropdownColor: Colors.white,
+              dropdownColor: colorScheme.background,
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
               items: [
-                _buildCityItem('ramallah'.tr()),
-                _buildCityItem('nablus'.tr()),
-                _buildCityItem('hebron'.tr()),
+                _buildCityItem('ramallah'.tr(), colorScheme),
+                _buildCityItem('nablus'.tr(), colorScheme),
+                _buildCityItem('hebron'.tr(), colorScheme),
               ],
               onChanged: (value) {
                 setState(() {
@@ -290,7 +272,7 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  DropdownMenuItem<String> _buildCityItem(String city) {
+  DropdownMenuItem<String> _buildCityItem(String city, ColorScheme colorScheme) {
     return DropdownMenuItem(
       value: city,
       child: Row(
@@ -298,15 +280,14 @@ class _SignUpPageState extends State<SignUpPage> {
           Icon(
             Icons.location_on,
             size: 18,
-            color: city == selectedCity ? AppColors.primary : Colors.grey,
+            color: city == selectedCity ? colorScheme.primary : colorScheme.onSurface.withOpacity(0.5),
           ),
           const SizedBox(width: 12),
           Text(
             city,
             style: TextStyle(
-              color: city == selectedCity ? AppColors.primary : Colors.black87,
-              fontWeight:
-                  city == selectedCity ? FontWeight.bold : FontWeight.normal,
+              color: city == selectedCity ? colorScheme.primary : colorScheme.onSurface,
+              fontWeight: city == selectedCity ? FontWeight.bold : FontWeight.normal,
               fontSize: 18,
             ),
           ),
@@ -319,6 +300,7 @@ class _SignUpPageState extends State<SignUpPage> {
     required String label,
     required bool selected,
     required VoidCallback onTap,
+    required ColorScheme colorScheme,
   }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -329,26 +311,25 @@ class _SignUpPageState extends State<SignUpPage> {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.primary, width: 2),
+              border: Border.all(color: colorScheme.primary, width: 2),
               borderRadius: BorderRadius.circular(4),
             ),
-            child:
-                selected
-                    ? Center(
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+            child: selected
+                ? Center(
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                    )
-                    : null,
+                    ),
+                  )
+                : null,
           ),
         ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
         const SizedBox(width: 16),
       ],
     );

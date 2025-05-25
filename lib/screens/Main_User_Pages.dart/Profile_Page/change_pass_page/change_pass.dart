@@ -111,10 +111,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
   }
 
   Color _getStrengthColor() {
-    if (passwordStrength <= 0.4) return Colors.red;
-    if (passwordStrength <= 0.6) return Colors.orange;
-    if (passwordStrength <= 0.8) return Colors.yellow.shade700;
-    return Colors.green;
+    if (passwordStrength <= 0.4) return AppColors.error(context);
+    if (passwordStrength <= 0.6) return AppColors.warning(context);
+    if (passwordStrength <= 0.8) return AppColors.passwordMedium(context);
+    return AppColors.success(context);
   }
 
   String? _validateCurrentPassword(String? value) {
@@ -162,6 +162,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
           child: FadeTransition(
             opacity: animation,
             child: AlertDialog(
+              backgroundColor: AppColors.cardBackground(context),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
               ),
@@ -174,11 +175,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
-                  ),
+                  gradient: AppColors.helpDialogGradient(context),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -188,11 +185,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.primary, AppColors.secondary],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: AppColors.primaryGradient(context),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(24),
                           topRight: Radius.circular(24),
@@ -280,10 +273,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.amber.shade50,
+                                color: AppColors.getSecurityTipsBackground(context),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.amber.shade200,
+                                  color: AppColors.getSecurityTipsBorder(context),
                                 ),
                               ),
                               child: Column(
@@ -293,7 +286,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                     children: [
                                       Icon(
                                         Icons.lightbulb,
-                                        color: Colors.amber.shade700,
+                                        color: AppColors.getSecurityTipsIcon(context),
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),
@@ -301,7 +294,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                         "security_tips_title".tr(),
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.amber.shade700,
+                                          color: AppColors.getSecurityTipsText(context),
                                           fontSize: 14,
                                         ),
                                       ),
@@ -311,7 +304,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                   Text(
                                     "security_tips_content".tr(),
                                     style: TextStyle(
-                                      color: Colors.amber.shade700,
+                                      color: AppColors.getSecurityTipsText(context),
                                       fontSize: 12,
                                       height: 1.4,
                                     ),
@@ -325,7 +318,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                     ),
 
                     // Footer
-                    Padding(
+                    Container(
+                      color: AppColors.cardBackground(context),
                       padding: const EdgeInsets.all(20),
                       child: Row(
                         children: [
@@ -338,13 +332,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: AppColors.primary),
+                                  side: BorderSide(
+                                    color: AppColors.primaryLightDark(context),
+                                  ),
                                 ),
                               ),
                               child: Text(
                                 "close".tr(),
                                 style: TextStyle(
-                                  color: AppColors.primary,
+                                  color: AppColors.primaryLightDark(context),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -355,13 +351,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             child: ElevatedButton(
                               onPressed: () {
                                 Navigator.pop(context);
-                                // Auto-focus on first field
-                                FocusScope.of(
-                                  context,
-                                ).requestFocus(FocusNode());
+                                FocusScope.of(context).requestFocus(FocusNode());
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: AppColors.primaryLightDark(context),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
@@ -409,7 +402,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.primaryLightDark(context),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -427,7 +420,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 Container(
                   width: 2,
                   height: 40,
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: AppColors.primaryLightDark(context).withOpacity(0.3),
                   margin: const EdgeInsets.symmetric(vertical: 4),
                 ),
             ],
@@ -439,14 +432,19 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               children: [
                 Row(
                   children: [
-                    Icon(icon, color: AppColors.primary, size: 20),
+                    Icon(
+                      icon,
+                      color: AppColors.primaryLightDark(context),
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -456,7 +454,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 Text(
                   description,
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: AppColors.textSecondary(context),
                     fontSize: 13,
                     height: 1.3,
                   ),
@@ -492,7 +490,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               Text("password_updated_successfully".tr()),
             ],
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success(context),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -520,7 +518,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[700],
+            color: AppColors.textSecondary(context),
             fontWeight: FontWeight.w600,
             fontSize: isTablet ? 16 : 14,
           ),
@@ -531,7 +529,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
             borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: AppColors.shadowLight(context),
                 blurRadius: isTablet ? 15 : 10,
                 offset: const Offset(0, 2),
               ),
@@ -541,19 +539,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
             controller: controller,
             obscureText: !isVisible,
             validator: validator,
-            style: TextStyle(fontSize: isTablet ? 18 : 16),
+            style: TextStyle(
+              fontSize: isTablet ? 18 : 16,
+              color: AppColors.textPrimary(context),
+            ),
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.white,
+              fillColor: AppColors.cardBackground(context),
               prefixIcon: Icon(
                 Icons.lock_outline,
-                color: AppColors.primary.withOpacity(0.7),
+                color: AppColors.primaryLightDark(context).withOpacity(0.7),
                 size: isTablet ? 28 : 24,
               ),
               suffixIcon: IconButton(
                 icon: Icon(
                   isVisible ? Icons.visibility_off : Icons.visibility,
-                  color: AppColors.primary.withOpacity(0.7),
+                  color: AppColors.primaryLightDark(context).withOpacity(0.7),
                   size: isTablet ? 28 : 24,
                 ),
                 onPressed: onVisibilityToggle,
@@ -564,16 +565,20 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
-                borderSide: BorderSide(color: Colors.grey.shade200),
+                borderSide: BorderSide(color: AppColors.divider(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderSide: BorderSide(
+                  color: AppColors.primaryLightDark(context),
+                  width: 2,
+                ),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
-                borderSide: const BorderSide(color: Colors.red),
+                borderSide: BorderSide(color: AppColors.error(context)),
               ),
+              errorStyle: TextStyle(color: AppColors.error(context)),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: isTablet ? 20 : 16,
                 vertical: isTablet ? 24 : 20,
@@ -588,7 +593,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               Expanded(
                 child: LinearProgressIndicator(
                   value: passwordStrength,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: AppColors.progressBackground(context),
                   valueColor: AlwaysStoppedAnimation<Color>(
                     _getStrengthColor(),
                   ),
@@ -616,28 +621,23 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
     final isDesktop = screenSize.width > 1200;
-    final horizontalPadding =
-        isDesktop
-            ? 40.0
-            : isTablet
+    final horizontalPadding = isDesktop
+        ? 40.0
+        : isTablet
             ? 30.0
             : 20.0;
     final maxWidth = isDesktop ? 800.0 : double.infinity;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.scaffoldBackground(context),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(isTablet ? 100 : 80),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.secondary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppColors.primaryGradient(context),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primaryLightDark(context).withOpacity(0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -727,17 +727,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         width: double.infinity,
                         padding: EdgeInsets.all(isTablet ? 32 : 24),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primary, AppColors.secondary],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          gradient: AppColors.primaryGradient(context),
                           borderRadius: BorderRadius.circular(
                             isTablet ? 24 : 20,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
+                              color: AppColors.primaryLightDark(context)
+                                  .withOpacity(0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -785,13 +782,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                       Container(
                         padding: EdgeInsets.all(isTablet ? 24 : 20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.cardBackground(context),
                           borderRadius: BorderRadius.circular(
                             isTablet ? 20 : 16,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: AppColors.shadowLight(context),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
@@ -802,14 +799,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             Container(
                               padding: EdgeInsets.all(isTablet ? 16 : 12),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
+                                color: AppColors.primaryLightDark(context)
+                                    .withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(
                                   isTablet ? 16 : 12,
                                 ),
                               ),
                               child: Icon(
                                 Icons.email_outlined,
-                                color: AppColors.primary,
+                                color: AppColors.primaryLightDark(context),
                                 size: isTablet ? 28 : 24,
                               ),
                             ),
@@ -821,7 +819,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                   Text(
                                     "email_label".tr(),
                                     style: TextStyle(
-                                      color: Colors.grey[600],
+                                      color: AppColors.textSecondary(context),
                                       fontSize: isTablet ? 14 : 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -832,6 +830,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: isTablet ? 18 : 16,
+                                      color: AppColors.textPrimary(context),
                                     ),
                                   ),
                                 ],
@@ -848,10 +847,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         controller: currentPasswordController,
                         label: "current_password_label".tr(),
                         isVisible: isCurrentVisible,
-                        onVisibilityToggle:
-                            () => setState(
-                              () => isCurrentVisible = !isCurrentVisible,
-                            ),
+                        onVisibilityToggle: () =>
+                            setState(() => isCurrentVisible = !isCurrentVisible),
                         validator: _validateCurrentPassword,
                       ),
 
@@ -861,8 +858,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         controller: newPasswordController,
                         label: "new_password_label".tr(),
                         isVisible: isNewVisible,
-                        onVisibilityToggle:
-                            () => setState(() => isNewVisible = !isNewVisible),
+                        onVisibilityToggle: () =>
+                            setState(() => isNewVisible = !isNewVisible),
                         validator: _validateNewPassword,
                         showStrengthIndicator: true,
                       ),
@@ -873,10 +870,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         controller: confirmPasswordController,
                         label: "confirm_new_password_label".tr(),
                         isVisible: isConfirmVisible,
-                        onVisibilityToggle:
-                            () => setState(
-                              () => isConfirmVisible = !isConfirmVisible,
-                            ),
+                        onVisibilityToggle: () =>
+                            setState(() => isConfirmVisible = !isConfirmVisible),
                         validator: _validateConfirmPassword,
                       ),
 
@@ -886,11 +881,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                       Container(
                         padding: EdgeInsets.all(isTablet ? 20 : 16),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: AppColors.getPasswordTipsBackground(context),
                           borderRadius: BorderRadius.circular(
                             isTablet ? 16 : 12,
                           ),
-                          border: Border.all(color: Colors.blue.shade200),
+                          border: Border.all(
+                            color: AppColors.getPasswordTipsBorder(context),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -899,7 +896,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                               children: [
                                 Icon(
                                   Icons.tips_and_updates,
-                                  color: Colors.blue.shade700,
+                                  color: AppColors.getPasswordTipsIcon(context),
                                   size: isTablet ? 24 : 20,
                                 ),
                                 SizedBox(width: isTablet ? 12 : 8),
@@ -907,7 +904,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                   "password_tips_title".tr(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade700,
+                                    color: AppColors.getPasswordTipsText(context),
                                     fontSize: isTablet ? 16 : 14,
                                   ),
                                 ),
@@ -917,7 +914,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                             Text(
                               "password_tips_content".tr(),
                               style: TextStyle(
-                                color: Colors.blue.shade600,
+                                color: AppColors.getPasswordTipsText(context),
                                 fontSize: isTablet ? 14 : 12,
                                 height: 1.4,
                               ),
@@ -933,17 +930,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                         width: double.infinity,
                         height: isTablet ? 64 : 56,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primary, AppColors.secondary],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          gradient: AppColors.primaryGradient(context),
                           borderRadius: BorderRadius.circular(
                             isTablet ? 20 : 16,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.4),
+                              color: AppColors.primaryLightDark(context)
+                                  .withOpacity(0.4),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),
@@ -960,35 +954,34 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                               ),
                             ),
                           ),
-                          child:
-                              isLoading
-                                  ? SizedBox(
-                                    width: isTablet ? 28 : 24,
-                                    height: isTablet ? 28 : 24,
-                                    child: const CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.security,
-                                        color: Colors.white,
-                                        size: isTablet ? 28 : 24,
-                                      ),
-                                      SizedBox(width: isTablet ? 16 : 12),
-                                      Text(
-                                        "save_changes".tr(),
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: isTablet ? 18 : 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                          child: isLoading
+                              ? SizedBox(
+                                  width: isTablet ? 28 : 24,
+                                  height: isTablet ? 28 : 24,
+                                  child: const CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
                                   ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.security,
+                                      color: Colors.white,
+                                      size: isTablet ? 28 : 24,
+                                    ),
+                                    SizedBox(width: isTablet ? 16 : 12),
+                                    Text(
+                                      "save_changes".tr(),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isTablet ? 18 : 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                         ),
                       ),
 

@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 
 class AuctionTimer extends StatefulWidget {
   final Color accentColor;
-  final bool isDark;
 
   const AuctionTimer({
     super.key,
     required this.accentColor,
-    required this.isDark,
   });
 
   @override
@@ -50,11 +48,10 @@ class _AuctionTimerState extends State<AuctionTimer>
     late DateTime target;
 
     if (now.weekday >= DateTime.friday) {
-      target = _nextWeekdayTime(DateTime.monday, 18); // الإثنين 6 مساءً
+      target = _nextWeekdayTime(DateTime.monday, 18);
     } else if (now.weekday >= DateTime.tuesday) {
-      target = _nextWeekdayTime(DateTime.thursday, 18); // الخميس 6 مساءً
+      target = _nextWeekdayTime(DateTime.thursday, 18);
     } else {
-      // يوم الإثنين قبل 6 مساءً => نعد لـ الاثنين 6 مساءً
       final todayAt6 = DateTime(now.year, now.month, now.day, 18);
       target = now.isBefore(todayAt6)
           ? todayAt6
@@ -79,6 +76,7 @@ class _AuctionTimerState extends State<AuctionTimer>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hours = _timeLeft.inHours;
     final minutes = _timeLeft.inMinutes % 60;
     final seconds = _timeLeft.inSeconds % 60;
@@ -88,17 +86,19 @@ class _AuctionTimerState extends State<AuctionTimer>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildTimerUnit(hours.toString().padLeft(2, '0'), 'HRS'),
-          _buildTimerSeparator(),
-          _buildTimerUnit(minutes.toString().padLeft(2, '0'), 'MIN'),
-          _buildTimerSeparator(),
-          _buildTimerUnit(seconds.toString().padLeft(2, '0'), 'SEC', isLast: true),
+          _buildTimerUnit(context, hours.toString().padLeft(2, '0'), 'HRS'),
+          _buildTimerSeparator(context),
+          _buildTimerUnit(context, minutes.toString().padLeft(2, '0'), 'MIN'),
+          _buildTimerSeparator(context),
+          _buildTimerUnit(context, seconds.toString().padLeft(2, '0'), 'SEC', isLast: true),
         ],
       ),
     );
   }
 
-  Widget _buildTimerUnit(String value, String label, {bool isLast = false}) {
+  Widget _buildTimerUnit(BuildContext context, String value, String label, {bool isLast = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: 60,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -106,7 +106,7 @@ class _AuctionTimerState extends State<AuctionTimer>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: widget.isDark
+          colors: isDark
               ? [Colors.grey.shade900, Colors.grey.shade800]
               : [Colors.white, Colors.grey.shade100],
         ),
@@ -119,7 +119,7 @@ class _AuctionTimerState extends State<AuctionTimer>
           ),
         ],
         border: Border.all(
-          color: widget.isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
           width: 1,
         ),
       ),
@@ -133,7 +133,7 @@ class _AuctionTimerState extends State<AuctionTimer>
               fontWeight: FontWeight.bold,
               color: isLast && _timeLeft.inHours < 1
                   ? Colors.red
-                  : (widget.isDark ? Colors.white : Colors.black87),
+                  : (isDark ? Colors.white : Colors.black87),
             ),
           ),
           const SizedBox(height: 4),
@@ -142,9 +142,7 @@ class _AuctionTimerState extends State<AuctionTimer>
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: widget.isDark
-                  ? Colors.grey.shade400
-                  : Colors.grey.shade700,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
             ),
           ),
         ],
@@ -152,7 +150,9 @@ class _AuctionTimerState extends State<AuctionTimer>
     );
   }
 
-  Widget _buildTimerSeparator() {
+  Widget _buildTimerSeparator(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Text(
@@ -160,9 +160,7 @@ class _AuctionTimerState extends State<AuctionTimer>
         style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: widget.isDark
-              ? Colors.grey.shade300
-              : Colors.grey.shade700,
+          color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
         ),
       ),
     );

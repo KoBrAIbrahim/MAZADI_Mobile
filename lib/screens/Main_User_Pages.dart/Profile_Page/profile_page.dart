@@ -193,8 +193,7 @@ class _ProfilePageState extends State<ProfilePage>
     return Scaffold(
       key: _scaffoldKey,
       drawer: AuctionDrawer(selectedItem: 'my_account'.tr()),
-
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.scaffoldBackground(context),
       body: SafeArea(
         child: Stack(
           children: [
@@ -210,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage>
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
-                          buildHeader(screenSize, isTablet, "my_account".tr()),
+                          buildHeader(context, screenSize, isTablet, "my_account".tr()),
                           _buildAdvancedProfileCard(
                             screenSize,
                             isTablet,
@@ -248,29 +247,27 @@ class _ProfilePageState extends State<ProfilePage>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primaryLightDark(context).withOpacity(0.12),
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(10),
                       right: Radius.circular(10),
                     ),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primaryLightDark(context).withOpacity(0.3),
                       width: 0.8,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.15),
+                        color: AppColors.primaryLightDark(context).withOpacity(0.15),
                         blurRadius: 6,
                         offset: const Offset(0, 1.5),
                       ),
                     ],
                   ),
                   child: Icon(
-                    isRTL
-                        ? Icons.arrow_forward
-                        : Icons.arrow_forward,
+                    isRTL ? Icons.arrow_forward : Icons.arrow_forward,
                     size: 14,
-                    color: AppColors.primary,
+                    color: AppColors.primaryLightDark(context),
                   ),
                 ),
               ),
@@ -290,22 +287,19 @@ class _ProfilePageState extends State<ProfilePage>
     bool isTablet,
     bool isDesktop,
   ) {
-    final horizontalPadding =
-        isDesktop
-            ? 40.0
-            : isTablet
+    final horizontalPadding = isDesktop
+        ? 40.0
+        : isTablet
             ? 30.0
             : 20.0;
-    final cardPadding =
-        isDesktop
-            ? 32.0
-            : isTablet
+    final cardPadding = isDesktop
+        ? 32.0
+        : isTablet
             ? 28.0
             : 24.0;
-    final avatarSize =
-        isDesktop
-            ? 120.0
-            : isTablet
+    final avatarSize = isDesktop
+        ? 120.0
+        : isTablet
             ? 100.0
             : 80.0;
 
@@ -320,7 +314,7 @@ class _ProfilePageState extends State<ProfilePage>
           borderRadius: BorderRadius.circular(isTablet ? 28 : 24),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primaryLightDark(context).withOpacity(0.1),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -330,11 +324,7 @@ class _ProfilePageState extends State<ProfilePage>
           borderRadius: BorderRadius.circular(isTablet ? 28 : 24),
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.white, AppColors.primary.withOpacity(0.02)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.profileCardGradient(context),
             ),
             child: Padding(
               padding: EdgeInsets.all(cardPadding),
@@ -347,8 +337,8 @@ class _ProfilePageState extends State<ProfilePage>
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          AppColors.secondary.withOpacity(0.1),
+                          AppColors.primaryLightDark(context).withOpacity(0.1),
+                          AppColors.secondaryLightDark(context).withOpacity(0.1),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -358,15 +348,11 @@ class _ProfilePageState extends State<ProfilePage>
                       width: avatarSize,
                       height: avatarSize,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.primary, AppColors.secondary],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: AppColors.primaryGradient(context),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primaryLightDark(context).withOpacity(0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -383,14 +369,13 @@ class _ProfilePageState extends State<ProfilePage>
                   Text(
                     "${_getSafeStringValue(widget.user.firstName)} ${_getSafeStringValue(widget.user.lastName)}",
                     style: TextStyle(
-                      fontSize:
-                          isDesktop
-                              ? 28
-                              : isTablet
+                      fontSize: isDesktop
+                          ? 28
+                          : isTablet
                               ? 24
                               : 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                       letterSpacing: 0.5,
                     ),
                     textAlign: TextAlign.center,
@@ -400,13 +385,12 @@ class _ProfilePageState extends State<ProfilePage>
                   Text(
                     _getSafeStringValue(widget.user.email),
                     style: TextStyle(
-                      fontSize:
-                          isDesktop
-                              ? 16
-                              : isTablet
+                      fontSize: isDesktop
+                          ? 16
+                          : isTablet
                               ? 14
                               : 12,
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary(context),
                       letterSpacing: 0.3,
                     ),
                     textAlign: TextAlign.center,
@@ -430,25 +414,25 @@ class _ProfilePageState extends State<ProfilePage>
         'icon': Icons.location_city_outlined,
         'title': 'city'.tr(),
         'value': _getSafeStringValue(widget.user.city),
-        'color': Colors.blue,
+        'color': AppColors.infoGridCity(context),
       },
       {
         'icon': Icons.phone_outlined,
         'title': 'phone'.tr(),
         'value': _getSafeStringValue(widget.user.phoneNumber),
-        'color': Colors.green,
+        'color': AppColors.infoGridPhone(context),
       },
       {
         'icon': Icons.person_pin_outlined,
         'title': 'gender'.tr(),
         'value': _getSafeStringValue(widget.user.gender),
-        'color': Colors.purple,
+        'color': AppColors.infoGridGender(context),
       },
       {
         'icon': Icons.email_outlined,
         'title': 'email'.tr(),
         'value': _getSafeStringValue(widget.user.email),
-        'color': Colors.orange,
+        'color': AppColors.infoGridEmail(context),
       },
     ];
 
@@ -456,18 +440,16 @@ class _ProfilePageState extends State<ProfilePage>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount:
-            isDesktop
-                ? 4
-                : isTablet
+        crossAxisCount: isDesktop
+            ? 4
+            : isTablet
                 ? 2
                 : 2,
         crossAxisSpacing: isTablet ? 16 : 12,
         mainAxisSpacing: isTablet ? 16 : 12,
-        childAspectRatio:
-            isDesktop
-                ? 1.2
-                : isTablet
+        childAspectRatio: isDesktop
+            ? 1.2
+            : isTablet
                 ? 1.5
                 : 1.3,
       ),
@@ -477,10 +459,16 @@ class _ProfilePageState extends State<ProfilePage>
         return Container(
           padding: EdgeInsets.all(isTablet ? 16 : 12),
           decoration: BoxDecoration(
-            color: (item['color'] as Color).withOpacity(0.05),
+            color: AppColors.getInfoGridBackground(
+              context,
+              item['color'] as Color,
+            ),
             borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
             border: Border.all(
-              color: (item['color'] as Color).withOpacity(0.2),
+              color: AppColors.getInfoGridBorder(
+                context,
+                item['color'] as Color,
+              ),
               width: 1,
             ),
           ),
@@ -490,16 +478,18 @@ class _ProfilePageState extends State<ProfilePage>
               Container(
                 padding: EdgeInsets.all(isTablet ? 8 : 6),
                 decoration: BoxDecoration(
-                  color: (item['color'] as Color).withOpacity(0.1),
+                  color: AppColors.getInfoGridIconBackground(
+                    context,
+                    item['color'] as Color,
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   item['icon'] as IconData,
                   color: item['color'] as Color,
-                  size:
-                      isDesktop
-                          ? 24
-                          : isTablet
+                  size: isDesktop
+                      ? 24
+                      : isTablet
                           ? 20
                           : 18,
                 ),
@@ -508,13 +498,12 @@ class _ProfilePageState extends State<ProfilePage>
               Text(
                 item['title'] as String,
                 style: TextStyle(
-                  fontSize:
-                      isDesktop
-                          ? 12
-                          : isTablet
+                  fontSize: isDesktop
+                      ? 12
+                      : isTablet
                           ? 11
                           : 10,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -524,14 +513,13 @@ class _ProfilePageState extends State<ProfilePage>
                 child: Text(
                   item['value'] as String,
                   style: TextStyle(
-                    fontSize:
-                        isDesktop
-                            ? 14
-                            : isTablet
+                    fontSize: isDesktop
+                        ? 14
+                        : isTablet
                             ? 13
                             : 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary(context),
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -550,10 +538,9 @@ class _ProfilePageState extends State<ProfilePage>
     bool isTablet,
     bool isDesktop,
   ) {
-    final horizontalPadding =
-        isDesktop
-            ? 40.0
-            : isTablet
+    final horizontalPadding = isDesktop
+        ? 40.0
+        : isTablet
             ? 30.0
             : 20.0;
 
@@ -564,11 +551,11 @@ class _ProfilePageState extends State<ProfilePage>
       ),
       padding: EdgeInsets.all(isTablet ? 8 : 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadowLight(context),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -585,61 +572,49 @@ class _ProfilePageState extends State<ProfilePage>
                 curve: Curves.easeInOut,
                 margin: EdgeInsets.symmetric(horizontal: isTablet ? 4 : 2),
                 padding: EdgeInsets.symmetric(
-                  vertical:
-                      isDesktop
-                          ? 20
-                          : isTablet
+                  vertical: isDesktop
+                      ? 20
+                      : isTablet
                           ? 16
                           : 12,
                   horizontal: isTablet ? 12 : 8,
                 ),
                 decoration: BoxDecoration(
-                  gradient:
-                      isSelected
-                          ? LinearGradient(
-                            colors: [AppColors.primary, AppColors.secondary],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                          : null,
+                  gradient: isSelected ? AppColors.primaryGradient(context) : null,
                   color: isSelected ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
-                  boxShadow:
-                      isSelected
-                          ? [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                          : null,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primaryLightDark(context).withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       profileTabIcons[index],
-                      size:
-                          isDesktop
-                              ? 28
-                              : isTablet
+                      size: isDesktop
+                          ? 28
+                          : isTablet
                               ? 24
                               : 20,
-                      color: isSelected ? Colors.white : Colors.grey[600],
+                      color: isSelected ? Colors.white : AppColors.textSecondary(context),
                     ),
                     SizedBox(height: isTablet ? 8 : 6),
                     Text(
                       profileTabs[index],
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[700],
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.w500,
-                        fontSize:
-                            isDesktop
-                                ? 14
-                                : isTablet
+                        color: isSelected ? Colors.white : AppColors.textSecondary(context),
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontSize: isDesktop
+                            ? 14
+                            : isTablet
                                 ? 13
                                 : 11,
                       ),
@@ -661,16 +636,14 @@ class _ProfilePageState extends State<ProfilePage>
     bool isTablet,
     bool isDesktop,
   ) {
-    final horizontalPadding =
-        isDesktop
-            ? 40.0
-            : isTablet
+    final horizontalPadding = isDesktop
+        ? 40.0
+        : isTablet
             ? 30.0
             : 20.0;
-    final contentHeight =
-        isDesktop
-            ? 450.0
-            : isTablet
+    final contentHeight = isDesktop
+        ? 450.0
+        : isTablet
             ? 400.0
             : 350.0;
 
@@ -681,11 +654,11 @@ class _ProfilePageState extends State<ProfilePage>
         height: contentHeight,
         margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBackground(context),
           borderRadius: BorderRadius.circular(isTablet ? 28 : 24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: AppColors.shadowLight(context),
               blurRadius: 25,
               offset: const Offset(0, 8),
             ),
@@ -695,11 +668,7 @@ class _ProfilePageState extends State<ProfilePage>
           borderRadius: BorderRadius.circular(isTablet ? 28 : 24),
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.white, AppColors.secondary.withOpacity(0.02)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+              gradient: AppColors.tabContentGradient(context),
             ),
             child: ScaleTransition(
               scale: _tabContentScaleAnimation,
@@ -737,8 +706,8 @@ class _ProfilePageState extends State<ProfilePage>
         isDesktop
             ? 40
             : isTablet
-            ? 32
-            : 24,
+                ? 32
+                : 24,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -748,14 +717,14 @@ class _ProfilePageState extends State<ProfilePage>
               isDesktop
                   ? 24
                   : isTablet
-                  ? 20
-                  : 16,
+                      ? 20
+                      : 16,
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withOpacity(0.1),
-                  AppColors.secondary.withOpacity(0.1),
+                  AppColors.primaryLightDark(context).withOpacity(0.1),
+                  AppColors.secondaryLightDark(context).withOpacity(0.1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -764,27 +733,25 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             child: Icon(
               Icons.person_outline,
-              size:
-                  isDesktop
-                      ? 80
-                      : isTablet
+              size: isDesktop
+                  ? 80
+                  : isTablet
                       ? 70
                       : 60,
-              color: AppColors.primary,
+              color: AppColors.primaryLightDark(context),
             ),
           ),
 
           Text(
             "account_info".tr(),
             style: TextStyle(
-              fontSize:
-                  isDesktop
-                      ? 28
-                      : isTablet
+              fontSize: isDesktop
+                  ? 28
+                  : isTablet
                       ? 24
                       : 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.primary,
+              color: AppColors.primaryLightDark(context),
               letterSpacing: 0.5,
             ),
           ),
@@ -793,13 +760,12 @@ class _ProfilePageState extends State<ProfilePage>
             "account_info_description".tr(),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize:
-                  isDesktop
-                      ? 16
-                      : isTablet
+              fontSize: isDesktop
+                  ? 16
+                  : isTablet
                       ? 14
                       : 12,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary(context),
               height: 1.5,
             ),
           ),
@@ -810,24 +776,23 @@ class _ProfilePageState extends State<ProfilePage>
             screenSize,
             isTablet,
             isDesktop,
-            Colors.blue,
+            AppColors.actionButtonBlue(context),
             onPressed: () {
               // Navigate to Edit Profile Page
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder:
-                    (_) => Container(
-                      height: MediaQuery.of(context).size.height * 0.9,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                      ),
-                      child: EditProfileSheet(user: widget.user),
+                builder: (_) => Container(
+                  height: MediaQuery.of(context).size.height * 0.9,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground(context),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
                     ),
+                  ),
+                  child: EditProfileSheet(user: widget.user),
+                ),
               );
             },
           ),
@@ -847,8 +812,8 @@ class _ProfilePageState extends State<ProfilePage>
         isDesktop
             ? 40
             : isTablet
-            ? 32
-            : 24,
+                ? 32
+                : 24,
       ),
       child: Column(
         children: [
@@ -860,14 +825,14 @@ class _ProfilePageState extends State<ProfilePage>
                   isDesktop
                       ? 16
                       : isTablet
-                      ? 14
-                      : 12,
+                          ? 14
+                          : 12,
                 ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.purple.withOpacity(0.1),
-                      Colors.deepPurple.withOpacity(0.1),
+                      AppColors.creditCardPurple(context).withOpacity(0.1),
+                      AppColors.creditCardDeepPurple(context).withOpacity(0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -876,13 +841,12 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
                 child: Icon(
                   Icons.credit_card_outlined,
-                  size:
-                      isDesktop
-                          ? 32
-                          : isTablet
+                  size: isDesktop
+                      ? 32
+                      : isTablet
                           ? 28
                           : 24,
-                  color: Colors.purple,
+                  color: AppColors.creditCardPurple(context),
                 ),
               ),
               SizedBox(width: isTablet ? 16 : 12),
@@ -893,26 +857,24 @@ class _ProfilePageState extends State<ProfilePage>
                     Text(
                       "my_credit_card".tr(),
                       style: TextStyle(
-                        fontSize:
-                            isDesktop
-                                ? 20
-                                : isTablet
+                        fontSize: isDesktop
+                            ? 20
+                            : isTablet
                                 ? 18
                                 : 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple.shade700,
+                        color: AppColors.creditCardPurple(context),
                       ),
                     ),
                     Text(
                       "manage_payment_method".tr(),
                       style: TextStyle(
-                        fontSize:
-                            isDesktop
-                                ? 14
-                                : isTablet
+                        fontSize: isDesktop
+                            ? 14
+                            : isTablet
                                 ? 12
                                 : 11,
-                        color: Colors.grey[600],
+                        color: AppColors.textSecondary(context),
                       ),
                     ),
                   ],
@@ -934,11 +896,7 @@ class _ProfilePageState extends State<ProfilePage>
                   expiryDate: "12/26",
                   cardType: "Visa",
                   isDefault: true,
-                  color: LinearGradient(
-                    colors: [Colors.purple.shade600, Colors.purple.shade800],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.creditCardGradient(context),
                   screenSize: screenSize,
                   isTablet: isTablet,
                   isDesktop: isDesktop,
@@ -953,7 +911,7 @@ class _ProfilePageState extends State<ProfilePage>
                   screenSize,
                   isTablet,
                   isDesktop,
-                  Colors.purple,
+                  AppColors.creditCardPurple(context),
                   onPressed: () {
                     // Navigate to Edit Credit Card Page
                     _showEditCreditCardDialog();
@@ -978,10 +936,9 @@ class _ProfilePageState extends State<ProfilePage>
     required bool isTablet,
     required bool isDesktop,
   }) {
-    final cardHeight =
-        isDesktop
-            ? 180.0
-            : isTablet
+    final cardHeight = isDesktop
+        ? 180.0
+        : isTablet
             ? 160.0
             : 140.0;
     final cardWidth = double.infinity;
@@ -995,12 +952,12 @@ class _ProfilePageState extends State<ProfilePage>
         borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: AppColors.shadowStrong(context),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: AppColors.creditCardPurple(context).withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -1040,8 +997,8 @@ class _ProfilePageState extends State<ProfilePage>
               isDesktop
                   ? 24
                   : isTablet
-                  ? 20
-                  : 16,
+                      ? 20
+                      : 16,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1055,10 +1012,9 @@ class _ProfilePageState extends State<ProfilePage>
                       cardType,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize:
-                            isDesktop
-                                ? 20
-                                : isTablet
+                        fontSize: isDesktop
+                            ? 20
+                            : isTablet
                                 ? 18
                                 : 16,
                         fontWeight: FontWeight.bold,
@@ -1085,10 +1041,9 @@ class _ProfilePageState extends State<ProfilePage>
                           "default".tr(),
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize:
-                                isDesktop
-                                    ? 14
-                                    : isTablet
+                            fontSize: isDesktop
+                                ? 14
+                                : isTablet
                                     ? 12
                                     : 10,
                             fontWeight: FontWeight.w700,
@@ -1105,10 +1060,9 @@ class _ProfilePageState extends State<ProfilePage>
                     cardNumber,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize:
-                          isDesktop
-                              ? 24
-                              : isTablet
+                      fontSize: isDesktop
+                          ? 24
+                          : isTablet
                               ? 22
                               : 20,
                       fontWeight: FontWeight.w600,
@@ -1132,10 +1086,9 @@ class _ProfilePageState extends State<ProfilePage>
                             "card_holder_name".tr(),
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.8),
-                              fontSize:
-                                  isDesktop
-                                      ? 12
-                                      : isTablet
+                              fontSize: isDesktop
+                                  ? 12
+                                  : isTablet
                                       ? 11
                                       : 9,
                               fontWeight: FontWeight.w500,
@@ -1146,10 +1099,9 @@ class _ProfilePageState extends State<ProfilePage>
                             "${_getSafeStringValue(widget.user.firstName)} ${_getSafeStringValue(widget.user.lastName)}",
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize:
-                                  isDesktop
-                                      ? 16
-                                      : isTablet
+                              fontSize: isDesktop
+                                  ? 16
+                                  : isTablet
                                       ? 14
                                       : 12,
                               fontWeight: FontWeight.w600,
@@ -1168,10 +1120,9 @@ class _ProfilePageState extends State<ProfilePage>
                           "expiry_date".tr(),
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.8),
-                            fontSize:
-                                isDesktop
-                                    ? 12
-                                    : isTablet
+                            fontSize: isDesktop
+                                ? 12
+                                : isTablet
                                     ? 11
                                     : 9,
                             fontWeight: FontWeight.w500,
@@ -1182,10 +1133,9 @@ class _ProfilePageState extends State<ProfilePage>
                           expiryDate,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize:
-                                isDesktop
-                                    ? 16
-                                    : isTablet
+                            fontSize: isDesktop
+                                ? 16
+                                : isTablet
                                     ? 14
                                     : 12,
                             fontWeight: FontWeight.w600,
@@ -1202,16 +1152,14 @@ class _ProfilePageState extends State<ProfilePage>
 
           // Card Chip (Optional visual element)
           Positioned(
-            left:
-                isDesktop
-                    ? 24
-                    : isTablet
+            left: isDesktop
+                ? 24
+                : isTablet
                     ? 20
                     : 16,
-            top:
-                isDesktop
-                    ? 60
-                    : isTablet
+            top: isDesktop
+                ? 60
+                : isTablet
                     ? 50
                     : 40,
             child: Container(
@@ -1241,10 +1189,9 @@ class _ProfilePageState extends State<ProfilePage>
     Color color, {
     VoidCallback? onPressed,
   }) {
-    final buttonHeight =
-        isDesktop
-            ? 60.0
-            : isTablet
+    final buttonHeight = isDesktop
+        ? 60.0
+        : isTablet
             ? 56.0
             : 50.0;
 
@@ -1267,43 +1214,39 @@ class _ProfilePageState extends State<ProfilePage>
         ],
       ),
       child: ElevatedButton.icon(
-        onPressed:
-            onPressed ??
+        onPressed: onPressed ??
             () {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder:
-                    (_) => Container(
-                      height: MediaQuery.of(context).size.height * 0.9,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                      ),
-                      child: EditProfileSheet(user: widget.user),
+                builder: (_) => Container(
+                  height: MediaQuery.of(context).size.height * 0.9,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground(context),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
                     ),
+                  ),
+                  child: EditProfileSheet(user: widget.user),
+                ),
               );
             },
         icon: Icon(
           icon,
           color: Colors.white,
-          size:
-              isDesktop
-                  ? 24
-                  : isTablet
+          size: isDesktop
+              ? 24
+              : isTablet
                   ? 22
                   : 20,
         ),
         label: Text(
           text,
           style: TextStyle(
-            fontSize:
-                isDesktop
-                    ? 18
-                    : isTablet
+            fontSize: isDesktop
+                ? 18
+                : isTablet
                     ? 16
                     : 14,
             fontWeight: FontWeight.bold,
@@ -1340,6 +1283,7 @@ class _ProfilePageState extends State<ProfilePage>
           child: FadeTransition(
             opacity: animation,
             child: AlertDialog(
+              backgroundColor: AppColors.cardBackground(context),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
               ),
@@ -1349,11 +1293,7 @@ class _ProfilePageState extends State<ProfilePage>
                 constraints: const BoxConstraints(maxWidth: 400),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.white, Colors.purple.withOpacity(0.05)],
-                  ),
+                  gradient: AppColors.creditCardDialogGradient(context),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1363,14 +1303,7 @@ class _ProfilePageState extends State<ProfilePage>
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.purple.shade600,
-                            Colors.purple.shade800,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: AppColors.creditCardGradient(context),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(24),
                           topRight: Radius.circular(24),
@@ -1414,18 +1347,11 @@ class _ProfilePageState extends State<ProfilePage>
                             width: double.infinity,
                             height: 120,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.purple.shade600,
-                                  Colors.purple.shade800,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              gradient: AppColors.creditCardGradient(context),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.purple.withOpacity(0.3),
+                                  color: AppColors.creditCardPurple(context).withOpacity(0.3),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -1435,12 +1361,10 @@ class _ProfilePageState extends State<ProfilePage>
                               padding: const EdgeInsets.all(16),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       const Text(
                                         "Visa",
@@ -1457,9 +1381,7 @@ class _ProfilePageState extends State<ProfilePage>
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.white.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           "primary".tr(),
@@ -1482,8 +1404,7 @@ class _ProfilePageState extends State<ProfilePage>
                                     ),
                                   ),
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Expanded(
                                         child: Text(
@@ -1515,9 +1436,9 @@ class _ProfilePageState extends State<ProfilePage>
 
                           Text(
                             "redirect_secure_card_edit".tr(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
-                              color: Colors.black87,
+                              color: AppColors.textPrimary(context),
                               height: 1.5,
                             ),
                             textAlign: TextAlign.center,
@@ -1537,14 +1458,14 @@ class _ProfilePageState extends State<ProfilePage>
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       side: BorderSide(
-                                        color: Colors.purple.shade600,
+                                        color: AppColors.creditCardPurple(context),
                                       ),
                                     ),
                                   ),
                                   child: Text(
                                     "cancel".tr(),
                                     style: TextStyle(
-                                      color: Colors.purple.shade600,
+                                      color: AppColors.creditCardPurple(context),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1559,7 +1480,7 @@ class _ProfilePageState extends State<ProfilePage>
                                     _navigateToEditCreditCardPage();
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.purple.shade600,
+                                    backgroundColor: AppColors.creditCardPurple(context),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 16,
                                     ),
@@ -1603,7 +1524,7 @@ class _ProfilePageState extends State<ProfilePage>
             Text("redirect_card_edit".tr()),
           ],
         ),
-        backgroundColor: Colors.purple.shade600,
+        backgroundColor: AppColors.creditCardPurple(context),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

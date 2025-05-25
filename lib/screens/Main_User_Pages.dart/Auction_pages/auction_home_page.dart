@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:application/models/action.dart';
 import 'package:application/models/bid.dart';
 import 'package:application/models/post.dart';
-import 'package:application/screens/Main_User_Pages.dart/dashboard.dart/dashboard_page.dart';
 import 'package:application/screens/Main_User_Pages.dart/Auction_pages/detalis_auction.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -67,8 +66,6 @@ class _AuctionHomePageState extends State<AuctionHomePage>
     });
   }
 
-
-
   List<Auction> get filteredAuctions {
     final arabicCategory =
         indexToArabicCategory[selectedCategoryIndex]?.trim().toLowerCase() ??
@@ -121,11 +118,15 @@ class _AuctionHomePageState extends State<AuctionHomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
       appBar: AppBar(
         title: Text(
           'auctions'.tr(),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
 
         leading: Padding(
@@ -142,9 +143,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           child: TabBar(
             controller: _tabController,
             isScrollable: true,
-            labelColor: Colors.teal,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.teal,
+            labelColor: Theme.of(context).colorScheme.primary,
+            unselectedLabelColor: Theme.of(context).unselectedWidgetColor,
+            indicatorColor: Theme.of(context).colorScheme.primary,
             indicatorWeight: 3,
             tabs:
                 widget.categories
@@ -171,11 +172,12 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                         const SizedBox(height: 12),
                         _buildFeaturedAuction(),
                         const SizedBox(height: 24),
-                        const Text(
+                        Text(
                           "جميع المنشورات",
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -200,7 +202,10 @@ class _AuctionHomePageState extends State<AuctionHomePage>
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.red.shade200, Colors.orange.shade200],
+          colors:
+              Theme.of(context).brightness == Brightness.dark
+                  ? [Colors.deepOrange.shade400, Colors.deepOrange.shade200]
+                  : [Colors.red.shade200, Colors.orange.shade200],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -222,7 +227,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
             "ends_in".tr(),
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
           const SizedBox(width: 8),
@@ -244,7 +249,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
@@ -266,7 +271,10 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 10, color: Colors.black87),
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
           ),
         ],
       ),
@@ -333,7 +341,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                 fit: BoxFit.cover,
                 errorBuilder:
                     (context, error, stackTrace) => Container(
-                      color: Colors.grey.shade300,
+                      color: Theme.of(context).cardColor,
                       child: const Icon(Icons.image_not_supported, size: 50),
                     ),
               ),
@@ -407,7 +415,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.black.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -494,12 +502,17 @@ class _AuctionHomePageState extends State<AuctionHomePage>
   }
 
   Widget _buildAuctionGrid() {
-    final arabicCategory = indexToArabicCategory[selectedCategoryIndex]?.trim().toLowerCase() ?? '';
+    final arabicCategory =
+        indexToArabicCategory[selectedCategoryIndex]?.trim().toLowerCase() ??
+        '';
 
-  final filteredPosts = widget.auction
-      .expand((auction) => auction.posts)
-      .where((post) => post.category.trim().toLowerCase() == arabicCategory)
-      .toList();
+    final filteredPosts =
+        widget.auction
+            .expand((auction) => auction.posts)
+            .where(
+              (post) => post.category.trim().toLowerCase() == arabicCategory,
+            )
+            .toList();
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -517,15 +530,24 @@ class _AuctionHomePageState extends State<AuctionHomePage>
 
         switch (post.isLive) {
           case 'WAITING':
-            badgeColor = Colors.grey;
+            badgeColor =
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade300;
             badgeText = 'coming_soon'.tr();
             break;
           case 'COMPLETED':
-            badgeColor = Colors.green;
+            badgeColor =
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.green.shade400
+                    : Colors.green;
             badgeText = 'sold'.tr();
             break;
           default:
-            badgeColor = Colors.red.shade700;
+            badgeColor =
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.red.shade300
+                    : Colors.red.shade700;
             badgeText = 'live'.tr();
         }
 
@@ -642,8 +664,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                               'price': post.startPrice.toStringAsFixed(2),
                             },
                           ),
-                          style: const TextStyle(
-                            color: Colors.white70,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
                             fontSize: 12,
                           ),
                         ),
@@ -653,8 +676,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                               'rank': post.numberOfOnAuction.toString(),
                             },
                           ),
-                          style: const TextStyle(
-                            color: Colors.white70,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
                             fontSize: 12,
                           ),
                         ),

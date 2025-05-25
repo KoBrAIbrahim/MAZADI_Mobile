@@ -182,40 +182,30 @@ class _DetailsPostPageState extends State<DetailsPostPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final accentColor = isDark ? Colors.tealAccent : Colors.teal;
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final subtleColor = isDark ? Colors.grey.shade800 : Colors.grey.shade100;
-
     final isMyWinner = widget.pageType == PageType.myWinners;
     final isMyPost = widget.pageType == PageType.myPosts;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarIconBrightness:
+            Theme.of(context).brightness == Brightness.dark
+                ? Brightness.light
+                : Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: isDark ? Colors.black : Colors.grey.shade100,
+        backgroundColor: AppColors.scaffoldBackground(context),
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
-            // خلفية متدرجة
+            // Background gradient
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors:
-                      isDark
-                          ? [Colors.black, const Color(0xFF0D1F20)]
-                          : [Colors.white, const Color(0xFFE0F2F1)],
-                ),
+                gradient: AppColors.detailsPageGradient(context),
               ),
             ),
 
-            // المحتوى الرئيسي
+            // Main content
             SafeArea(
               bottom: false,
               child: FadeTransition(
@@ -226,30 +216,22 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     slivers: [
-                      _buildSliverAppBar(context, accentColor, isDark),
-                      SliverToBoxAdapter(
-                        child: _buildContent(
-                          context,
-                          accentColor,
-                          cardColor,
-                          subtleColor,
-                          isDark,
-                        ),
-                      ),
+                      _buildSliverAppBar(context),
+                      SliverToBoxAdapter(child: _buildContent(context)),
                     ],
                   ),
                 ),
               ),
             ),
 
-            // نافذة المزايدة (لا تظهر في myPosts أو myWinners)
+            // Bid dialog (don't show in myPosts or myWinners)
             if (_showBidForm && !isMyWinner && !isMyPost)
-              _buildBidDialog(context, accentColor, isDark),
+              _buildBidDialog(context),
 
-            // عرض الصورة بالحجم الكامل
+            // Full screen image viewer
             if (_isFullScreenImage) _buildFullScreenImage(),
 
-            // زر الحفظ في حالة myPosts فقط
+            // Save button for myPosts only
             if (isMyPost)
               Positioned(
                 bottom: 16,
@@ -260,8 +242,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('changes_saved_successfully'.tr()),
-                        backgroundColor:
-                            Theme.of(context).colorScheme.secondary,
+                        backgroundColor: AppColors.success(context),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -276,7 +257,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   icon: const Icon(Icons.save_alt_rounded),
                   label: Text('save_changes'.tr()),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primaryLightDark(context),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -296,19 +277,12 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildSliverAppBar(
-    BuildContext context,
-    Color accentColor,
-    bool isDark,
-  ) {
+  Widget _buildSliverAppBar(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 70,
       floating: true,
       pinned: true,
-      backgroundColor:
-          isDark
-              ? Colors.black.withOpacity(0.7)
-              : Colors.white.withOpacity(0.85),
+      backgroundColor: AppColors.getAppBarBackground(context),
       flexibleSpace: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -316,7 +290,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             title: Text(
               'auction_details_title'.tr(),
               style: TextStyle(
-                color: isDark ? Colors.white : Colors.black87,
+                color: AppColors.textPrimary(context),
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -329,15 +303,12 @@ class _DetailsPostPageState extends State<DetailsPostPage>
         icon: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color:
-                isDark
-                    ? Colors.grey.shade800.withOpacity(0.5)
-                    : Colors.white.withOpacity(0.7),
+            color: AppColors.getBlurredButtonBackground(context),
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.arrow_back_ios_new,
-            color: isDark ? Colors.white : Colors.black87,
+            color: AppColors.textPrimary(context),
             size: 16,
           ),
         ),
@@ -346,38 +317,26 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    Color accentColor,
-    Color cardColor,
-    Color subtleColor,
-    bool isDark,
-  ) {
+  Widget _buildContent(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildImageCarousel(accentColor, isDark),
+        _buildImageCarousel(),
         if (widget.pageType != PageType.myWinners &&
             widget.pageType != PageType.myPosts)
-          _buildAuctionTimer(accentColor, isDark),
+          _buildAuctionTimer(),
 
         Transform.translate(
           offset: const Offset(0, 0),
-          child: _buildPostDetails(
-            context,
-            accentColor,
-            cardColor,
-            subtleColor,
-            isDark,
-          ),
+          child: _buildPostDetails(context),
         ),
-        _buildSimilarItems(accentColor, isDark),
+        _buildSimilarItems(),
         SizedBox(height: 100),
       ],
     );
   }
 
-  Widget _buildImageCarousel(Color accentColor, bool isDark) {
+  Widget _buildImageCarousel() {
     return Container(
       height: 300,
       margin: EdgeInsets.only(top: 16),
@@ -399,7 +358,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                         borderRadius: BorderRadius.circular(28),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: AppColors.shadowStrong(context),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -458,8 +417,8 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   decoration: BoxDecoration(
                     color:
                         _currentImageIndex == index
-                            ? accentColor
-                            : Colors.grey.withOpacity(0.5),
+                            ? AppColors.primaryLightDark(context)
+                            : AppColors.textSecondary(context).withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -474,11 +433,11 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.red.shade600,
+                color: AppColors.featuredBadgeBackground(context),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: AppColors.shadowColor(context),
                     blurRadius: 10,
                     offset: Offset(0, 2),
                   ),
@@ -509,7 +468,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildAuctionTimer(Color accentColor, bool isDark) {
+  Widget _buildAuctionTimer() {
     final hours = _timeLeft.inHours;
     final minutes = _timeLeft.inMinutes % 60;
     final seconds = _timeLeft.inSeconds % 60;
@@ -519,25 +478,16 @@ class _DetailsPostPageState extends State<DetailsPostPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildTimerUnit(
-            hours.toString().padLeft(2, '0'),
-            'timer_hours'.tr(),
-            accentColor,
-            isDark,
-          ),
-          _buildTimerSeparator(isDark),
+          _buildTimerUnit(hours.toString().padLeft(2, '0'), 'timer_hours'.tr()),
+          _buildTimerSeparator(),
           _buildTimerUnit(
             minutes.toString().padLeft(2, '0'),
             'timer_minutes'.tr(),
-            accentColor,
-            isDark,
           ),
-          _buildTimerSeparator(isDark),
+          _buildTimerSeparator(),
           _buildTimerUnit(
             seconds.toString().padLeft(2, '0'),
             'timer_seconds'.tr(),
-            accentColor,
-            isDark,
             isLast: true,
           ),
         ],
@@ -545,37 +495,21 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildTimerUnit(
-    String value,
-    String label,
-    Color accentColor,
-    bool isDark, {
-    bool isLast = false,
-  }) {
+  Widget _buildTimerUnit(String value, String label, {bool isLast = false}) {
     return Container(
       width: 60,
       padding: EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            isDark ? Colors.grey.shade900 : Colors.white,
-            isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-          ],
-        ),
+        gradient: AppColors.timerUnitGradient(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: AppColors.shadowLight(context),
             blurRadius: 8,
             offset: Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.timerUnitBorder(context), width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -587,8 +521,8 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               fontWeight: FontWeight.bold,
               color:
                   isLast && _timeLeft.inHours < 1
-                      ? Colors.red
-                      : (isDark ? Colors.white : Colors.black87),
+                      ? AppColors.error(context)
+                      : AppColors.textPrimary(context),
             ),
           ),
           SizedBox(height: 4),
@@ -597,7 +531,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              color: AppColors.textSecondary(context),
             ),
           ),
         ],
@@ -605,7 +539,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildTimerSeparator(bool isDark) {
+  Widget _buildTimerSeparator() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8),
       child: Text(
@@ -613,29 +547,24 @@ class _DetailsPostPageState extends State<DetailsPostPage>
         style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+          color: AppColors.textSecondary(context),
         ),
       ),
     );
   }
 
-  Widget _buildPostDetails(
-    BuildContext context,
-    Color accentColor,
-    Color cardColor,
-    Color subtleColor,
-    bool isDark,
-  ) {
+  Widget _buildPostDetails(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMyWinner = widget.pageType == PageType.myWinners;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900.withOpacity(0.9) : Colors.white,
+        color: AppColors.getGlassCardBackground(context),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: AppColors.shadowLight(context),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -648,22 +577,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
           child: Container(
             padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors:
-                    isDark
-                        ? [
-                          Colors.grey.shade900.withOpacity(0.8),
-                          Colors.grey.shade800.withOpacity(0.8),
-                        ]
-                        : [
-                          Colors.white.withOpacity(0.9),
-                          Colors.grey.shade50.withOpacity(0.9),
-                        ],
-              ),
+              gradient: AppColors.glassMorphismGradient(context),
               border: Border.all(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                color: AppColors.glassBorder(context),
                 width: 1,
               ),
               borderRadius: BorderRadius.circular(28),
@@ -671,23 +587,27 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTitleSection(accentColor, subtleColor, textTheme, isDark),
+                _buildTitleSection(textTheme),
                 const SizedBox(height: 16),
-                _buildAnimatedDivider(context, accentColor),
+                _buildAnimatedDivider(context),
                 const SizedBox(height: 20),
 
                 if (widget.pageType == PageType.myWinners) ...[
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Icon(Icons.person, color: accentColor, size: 18),
+                      Icon(
+                        Icons.person,
+                        color: AppColors.primaryLightDark(context),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         "${'seller_label'.tr()}: ${widget.post.sellerName}",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -695,22 +615,26 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(Icons.phone_android, color: accentColor, size: 18),
+                      Icon(
+                        Icons.phone_android,
+                        color: AppColors.primaryLightDark(context),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         "${'whatsapp_label'.tr()}: ${widget.post.sellerId}",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ],
                   ),
                 ] else ...[
-                  _buildDescription(accentColor, isDark),
+                  _buildDescription(),
                   const SizedBox(height: 20),
-                  _buildPricingGlass(accentColor, isDark),
+                  _buildPricingGlass(),
                 ],
               ],
             ),
@@ -720,12 +644,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildTitleSection(
-    Color accentColor,
-    Color subtleColor,
-    TextTheme textTheme,
-    bool isDark,
-  ) {
+  Widget _buildTitleSection(TextTheme textTheme) {
     final isMyPost = widget.pageType == PageType.myPosts;
 
     return Column(
@@ -736,20 +655,24 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.15),
+                color: AppColors.primaryLightDark(context).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.category_outlined, size: 14, color: accentColor),
+                  Icon(
+                    Icons.category_outlined,
+                    size: 14,
+                    color: AppColors.primaryLightDark(context),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     widget.post.category,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: accentColor,
+                      color: AppColors.primaryLightDark(context),
                     ),
                   ),
                 ],
@@ -759,7 +682,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                color: AppColors.subtleBadgeBackground(context),
                 borderRadius: BorderRadius.circular(30),
               ),
             ),
@@ -772,18 +695,22 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             onChanged: (value) => setState(() => widget.post.title = value),
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
+              color: AppColors.textPrimary(context),
             ),
             decoration: InputDecoration(
               border: InputBorder.none,
               hintText: 'enter_title_hint'.tr(),
+              hintStyle: TextStyle(color: AppColors.textSecondary(context)),
             ),
           )
         else
           ShaderMask(
             shaderCallback:
                 (bounds) => LinearGradient(
-                  colors: [Theme.of(context).colorScheme.primary, accentColor],
+                  colors: [
+                    AppColors.primaryLightDark(context),
+                    AppColors.secondaryLightDark(context),
+                  ],
                 ).createShader(bounds),
             child: Text(
               widget.post.title,
@@ -798,7 +725,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildAnimatedDivider(BuildContext context, Color accentColor) {
+  Widget _buildAnimatedDivider(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 1200),
@@ -810,9 +737,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary,
-                  accentColor,
-                  accentColor.withOpacity(0.3),
+                  AppColors.primaryLightDark(context),
+                  AppColors.secondaryLightDark(context),
+                  AppColors.secondaryLightDark(context).withOpacity(0.3),
                 ],
               ),
               borderRadius: BorderRadius.circular(2),
@@ -821,7 +748,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildDescription(Color accentColor, bool isDark) {
+  Widget _buildDescription() {
     final isMyPost = widget.pageType == PageType.myPosts;
 
     return Column(
@@ -829,14 +756,18 @@ class _DetailsPostPageState extends State<DetailsPostPage>
       children: [
         Row(
           children: [
-            Icon(Icons.description_outlined, size: 18, color: accentColor),
+            Icon(
+              Icons.description_outlined,
+              size: 18,
+              color: AppColors.primaryLightDark(context),
+            ),
             const SizedBox(width: 8),
             Text(
               'description_label'.tr(),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
+                color: AppColors.textPrimary(context),
               ),
             ),
           ],
@@ -851,26 +782,28 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             maxLines: null,
             minLines: 5,
             style: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
+              color: AppColors.textPrimary(context),
               fontSize: 15,
               height: 1.4,
             ),
             decoration: InputDecoration(
               hintText: 'enter_description_hint'.tr(),
-              hintStyle: TextStyle(
-                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
-              ),
+              hintStyle: TextStyle(color: AppColors.textSecondary(context)),
               filled: true,
-              fillColor:
-                  isDark
-                      ? Colors.grey.shade800.withOpacity(0.3)
-                      : Colors.grey.shade100,
+              fillColor: AppColors.inputFieldBackground(context),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: accentColor),
+                borderSide: BorderSide(
+                  color: AppColors.primaryLightDark(context),
+                ),
               ),
             ),
           )
@@ -900,13 +833,15 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                   margin: const EdgeInsets.only(top: 4),
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: accentColor.withOpacity(0.15),
+                                    color: AppColors.primaryLightDark(
+                                      context,
+                                    ).withOpacity(0.15),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     Icons.check,
                                     size: 12,
-                                    color: accentColor,
+                                    color: AppColors.primaryLightDark(context),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -916,10 +851,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                     style: TextStyle(
                                       fontSize: 15,
                                       height: 1.4,
-                                      color:
-                                          isDark
-                                              ? Colors.grey[300]
-                                              : Colors.grey[800],
+                                      color: AppColors.textSecondary(context),
                                     ),
                                   ),
                                 ),
@@ -934,7 +866,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildPricingGlass(Color accentColor, bool isDark) {
+  Widget _buildPricingGlass() {
     final isMyPost = widget.pageType == PageType.myPosts;
 
     return ClipRRect(
@@ -944,26 +876,10 @@ class _DetailsPostPageState extends State<DetailsPostPage>
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors:
-                  isDark
-                      ? [
-                        Colors.white.withOpacity(0.05),
-                        Colors.white.withOpacity(0.08),
-                      ]
-                      : [
-                        Colors.white.withOpacity(0.8),
-                        Colors.white.withOpacity(0.95),
-                      ],
-            ),
+            gradient: AppColors.pricingGlassGradient(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color:
-                  isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.05),
+              color: AppColors.glassBorder(context),
               width: 1.2,
             ),
           ),
@@ -988,21 +904,17 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                           widget.post.startPrice,
                                 );
                               },
-                              accentColor: accentColor,
-                              isDark: isDark,
                             )
                             : _priceTile(
                               Icons.monetization_on_outlined,
                               'start_price_label'.tr(),
                               '${widget.post.startPrice} ${'currency_nis'.tr()}',
-                              isDark,
-                              accentColor,
                             ),
                   ),
                   Container(
                     width: 1,
                     height: 50,
-                    color: isDark ? Colors.white10 : Colors.black12,
+                    color: AppColors.glassDivider(context),
                   ),
                   Expanded(
                     child:
@@ -1019,15 +931,11 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                           widget.post.bid_step,
                                 );
                               },
-                              accentColor: accentColor,
-                              isDark: isDark,
                             )
                             : _priceTile(
                               Icons.trending_up_rounded,
                               'bid_step_label'.tr(),
                               '${widget.post.bid_step} ${'currency_nis'.tr()}',
-                              isDark,
-                              accentColor,
                             ),
                   ),
                 ],
@@ -1040,8 +948,6 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                 Icons.gavel_rounded,
                 'post_number_auction'.tr(),
                 '#${widget.post.numberOfOnAuction}',
-                isDark,
-                accentColor,
                 centerAlign: true,
               ),
             ],
@@ -1056,8 +962,6 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     required String initialValue,
     required IconData icon,
     required Function(String) onChanged,
-    required Color accentColor,
-    required bool isDark,
   }) {
     return TextFormField(
       initialValue: initialValue,
@@ -1066,24 +970,23 @@ class _DetailsPostPageState extends State<DetailsPostPage>
       style: TextStyle(
         fontWeight: FontWeight.bold,
         fontSize: 18,
-        color: isDark ? Colors.white : Colors.black87,
+        color: AppColors.textPrimary(context),
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: accentColor),
-        prefixIcon: Icon(icon, color: accentColor),
+        labelStyle: TextStyle(color: AppColors.primaryLightDark(context)),
+        prefixIcon: Icon(icon, color: AppColors.primaryLightDark(context)),
         filled: true,
-        fillColor:
-            isDark
-                ? Colors.grey.shade800.withOpacity(0.3)
-                : Colors.grey.shade100,
+        fillColor: AppColors.inputFieldBackground(context),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: accentColor.withOpacity(0.3)),
+          borderSide: BorderSide(
+            color: AppColors.primaryLightDark(context).withOpacity(0.3),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: accentColor),
+          borderSide: BorderSide(color: AppColors.primaryLightDark(context)),
         ),
       ),
     );
@@ -1092,9 +995,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
   Widget _priceTile(
     IconData icon,
     String label,
-    String value,
-    bool isDark,
-    Color accentColor, {
+    String value, {
     bool centerAlign = false,
   }) {
     return Column(
@@ -1105,13 +1006,17 @@ class _DetailsPostPageState extends State<DetailsPostPage>
           mainAxisAlignment:
               centerAlign ? MainAxisAlignment.center : MainAxisAlignment.start,
           children: [
-            Icon(icon, size: 16, color: accentColor.withOpacity(0.8)),
+            Icon(
+              icon,
+              size: 16,
+              color: AppColors.primaryLightDark(context).withOpacity(0.8),
+            ),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                color: AppColors.textSecondary(context),
               ),
             ),
           ],
@@ -1122,95 +1027,23 @@ class _DetailsPostPageState extends State<DetailsPostPage>
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildBidItem(
-    Map<String, String> bid,
-    Color accentColor,
-    bool isDark,
-  ) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accentColor.withOpacity(0.1),
-            ),
-            child: Center(
-              child: Text(
-                bid['user']?.substring(0, 1) ?? 'U',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: accentColor,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  bid['user'] ?? '',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  bid['time'] ?? '',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            bid['amount'] ?? '',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimilarItems(Color accentColor, bool isDark) {
+  Widget _buildSimilarItems() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadowLight(context),
             blurRadius: 10,
             offset: Offset(0, 5),
           ),
@@ -1224,14 +1057,18 @@ class _DetailsPostPageState extends State<DetailsPostPage>
             children: [
               Row(
                 children: [
-                  Icon(Icons.grid_view_rounded, size: 18, color: accentColor),
+                  Icon(
+                    Icons.grid_view_rounded,
+                    size: 18,
+                    color: AppColors.primaryLightDark(context),
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'similar_items_title'.tr(),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                 ],
@@ -1241,7 +1078,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: accentColor,
+                  color: AppColors.primaryLightDark(context),
                 ),
               ),
             ],
@@ -1253,9 +1090,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               scrollDirection: Axis.horizontal,
               physics: BouncingScrollPhysics(),
               itemCount: 5,
-              itemBuilder:
-                  (context, index) =>
-                      _buildSimilarItem(index, accentColor, isDark),
+              itemBuilder: (context, index) => _buildSimilarItem(index),
             ),
           ),
         ],
@@ -1263,18 +1098,15 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildSimilarItem(int index, Color accentColor, bool isDark) {
+  Widget _buildSimilarItem(int index) {
     final price = (widget.post.startPrice + (index * 50.0)).toStringAsFixed(1);
     return Container(
       width: 140,
       margin: EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+        color: AppColors.surfaceVariant(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.divider(context), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1302,7 +1134,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: AppColors.textPrimary(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1313,7 +1145,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: accentColor,
+                    color: AppColors.primaryLightDark(context),
                   ),
                 ),
               ],
@@ -1324,7 +1156,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildBidDialog(BuildContext context, Color accentColor, bool isDark) {
+  Widget _buildBidDialog(BuildContext context) {
     final currentBid = double.parse(_currentBid);
     final bidStep = widget.post.bid_step;
 
@@ -1350,11 +1182,11 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                         width: MediaQuery.of(context).size.width * 0.9,
                         padding: EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.grey.shade900 : Colors.white,
+                          color: AppColors.cardBackground(context),
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: AppColors.shadowStrong(context),
                               blurRadius: 20,
                               offset: Offset(0, 10),
                             ),
@@ -1371,17 +1203,13 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
+                                    color: AppColors.textPrimary(context),
                                   ),
                                 ),
                                 IconButton(
                                   icon: Icon(
                                     Icons.close,
-                                    color:
-                                        isDark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade700,
+                                    color: AppColors.textSecondary(context),
                                   ),
                                   onPressed:
                                       () =>
@@ -1393,10 +1221,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                             Container(
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color:
-                                    isDark
-                                        ? Colors.grey.shade800
-                                        : Colors.grey.shade100,
+                                color: AppColors.surfaceVariant(context),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Column(
@@ -1409,10 +1234,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         'current_bid_label'.tr(),
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color:
-                                              isDark
-                                                  ? Colors.grey.shade300
-                                                  : Colors.grey.shade700,
+                                          color: AppColors.textSecondary(
+                                            context,
+                                          ),
                                         ),
                                       ),
                                       Text(
@@ -1420,10 +1244,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color:
-                                              isDark
-                                                  ? Colors.white
-                                                  : Colors.black87,
+                                          color: AppColors.textPrimary(context),
                                         ),
                                       ),
                                     ],
@@ -1437,10 +1258,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         'minimum_bid_label'.tr(),
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color:
-                                              isDark
-                                                  ? Colors.grey.shade300
-                                                  : Colors.grey.shade700,
+                                          color: AppColors.textSecondary(
+                                            context,
+                                          ),
                                         ),
                                       ),
                                       Text(
@@ -1448,7 +1268,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: accentColor,
+                                          color: AppColors.primaryLightDark(
+                                            context,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1470,31 +1292,20 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color:
-                                          isDark
-                                              ? Colors.white
-                                              : Colors.black87,
+                                      color: AppColors.textPrimary(context),
                                     ),
                                   ),
                                   SizedBox(height: 16),
                                   Row(
                                     children: [
-                                      _buildBidOption(
-                                        currentBid + bidStep,
-                                        accentColor,
-                                        isDark,
-                                      ),
+                                      _buildBidOption(currentBid + bidStep),
                                       SizedBox(width: 8),
                                       _buildBidOption(
                                         currentBid + (bidStep * 2),
-                                        accentColor,
-                                        isDark,
                                       ),
                                       SizedBox(width: 8),
                                       _buildBidOption(
                                         currentBid + (bidStep * 3),
-                                        accentColor,
-                                        isDark,
                                       ),
                                     ],
                                   ),
@@ -1502,33 +1313,39 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                   TextField(
                                     keyboardType: TextInputType.number,
                                     style: TextStyle(
-                                      color:
-                                          isDark
-                                              ? Colors.white
-                                              : Colors.black87,
+                                      color: AppColors.textPrimary(context),
                                     ),
                                     decoration: InputDecoration(
                                       labelText: 'custom_bid_amount_hint'.tr(),
-                                      labelStyle: TextStyle(color: accentColor),
+                                      labelStyle: TextStyle(
+                                        color: AppColors.primaryLightDark(
+                                          context,
+                                        ),
+                                      ),
                                       prefixIcon: Icon(
                                         Icons.attach_money_rounded,
-                                        color: accentColor,
+                                        color: AppColors.primaryLightDark(
+                                          context,
+                                        ),
                                       ),
                                       filled: true,
-                                      fillColor:
-                                          isDark
-                                              ? Colors.grey.shade800
-                                              : Colors.grey.shade100,
+                                      fillColor: AppColors.inputFieldBackground(
+                                        context,
+                                      ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         borderSide: BorderSide(
-                                          color: accentColor.withOpacity(0.3),
+                                          color: AppColors.primaryLightDark(
+                                            context,
+                                          ).withOpacity(0.3),
                                         ),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         borderSide: BorderSide(
-                                          color: accentColor,
+                                          color: AppColors.primaryLightDark(
+                                            context,
+                                          ),
                                           width: 1.5,
                                         ),
                                       ),
@@ -1547,7 +1364,11 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                           () => _showBidForm = false,
                                         ),
                                     style: OutlinedButton.styleFrom(
-                                      side: BorderSide(color: accentColor),
+                                      side: BorderSide(
+                                        color: AppColors.primaryLightDark(
+                                          context,
+                                        ),
+                                      ),
                                       padding: EdgeInsets.symmetric(
                                         vertical: 16,
                                       ),
@@ -1558,7 +1379,9 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                     child: Text(
                                       'cancel_button'.tr(),
                                       style: TextStyle(
-                                        color: accentColor,
+                                        color: AppColors.primaryLightDark(
+                                          context,
+                                        ),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -1585,7 +1408,10 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                               },
                                             ),
                                           ),
-                                          backgroundColor: accentColor,
+                                          backgroundColor:
+                                              AppColors.primaryLightDark(
+                                                context,
+                                              ),
                                           behavior: SnackBarBehavior.floating,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
@@ -1600,7 +1426,8 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                       );
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: accentColor,
+                                      backgroundColor:
+                                          AppColors.primaryLightDark(context),
                                       padding: EdgeInsets.symmetric(
                                         vertical: 16,
                                       ),
@@ -1612,6 +1439,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                                       'place_bid_button'.tr(),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ),
@@ -1630,7 +1458,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     );
   }
 
-  Widget _buildBidOption(double amount, Color accentColor, bool isDark) {
+  Widget _buildBidOption(double amount) {
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -1648,7 +1476,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
                   },
                 ),
               ),
-              backgroundColor: accentColor,
+              backgroundColor: AppColors.primaryLightDark(context),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1661,9 +1489,12 @@ class _DetailsPostPageState extends State<DetailsPostPage>
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: accentColor.withOpacity(0.1),
+            color: AppColors.primaryLightDark(context).withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
+            border: Border.all(
+              color: AppColors.primaryLightDark(context).withOpacity(0.3),
+              width: 1,
+            ),
           ),
           child: Center(
             child: Text(
@@ -1671,7 +1502,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: accentColor,
+                color: AppColors.primaryLightDark(context),
               ),
             ),
           ),
