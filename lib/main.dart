@@ -1,3 +1,4 @@
+import 'package:application/AdvancedStartupPage.dart';
 import 'package:application/Router/app_route.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/models/ThemeProvider.dart';
@@ -268,25 +269,16 @@ String themeModeToString(ThemeMode mode) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized();
-  await Hive.initFlutter();
-
-  // افتح صندوق الإعدادات
-  final settingsBox = await Hive.openBox('settings');
-
-  // استرجع اللغة المحفوظة
-  String savedLangCode = settingsBox.get('language', defaultValue: 'ar');
-
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('ar'), Locale('en')],
       path: 'assets/langs',
       fallbackLocale: const Locale('ar'),
-      startLocale: Locale(savedLangCode),
+      startLocale: const Locale('ar'), // مؤقتًا
       useOnlyLangCode: true,
-      child: ChangeNotifierProvider(
-        create: (_) => ThemeProvider(), // ربط مزود الثيم
-        child: const MazadiApp(),
+      child: MaterialApp(
+        home: const AdvancedStartupPage(), // ← إضافة MaterialApp لحل المشكلة
+        debugShowCheckedModeBanner: false,
       ),
     ),
   );
