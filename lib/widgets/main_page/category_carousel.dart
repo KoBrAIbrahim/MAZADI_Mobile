@@ -17,10 +17,12 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
   final List<String> images = [
     'assets/icons/all.png',
     'assets/icons/electronics.png',
-    'assets/icons/car2.png',
-    'assets/icons/home.png',
+    'assets/icons/brand.png',
     'assets/icons/furniture.png',
-    'assets/icons/clothes.png',
+    'assets/icons/home.png',
+    'assets/icons/sports.png',
+    'assets/icons/car2.png',
+    'assets/icons/porcelain.png',
     'assets/icons/other.png',
   ];
 
@@ -37,11 +39,13 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
     categories = [
       {'key': 'ALL', 'label': 'category_all'.tr()},
       {'key': 'ELECTRONICS', 'label': 'category_electronics'.tr()},
-      {'key': 'CARS', 'label': 'category_cars'.tr()},
-      {'key': 'REAL_ESTATE', 'label': 'category_real_estate'.tr()},
+      {'key': 'FASHION', 'label': 'category_fashion'.tr()},
       {'key': 'FURNITURE', 'label': 'category_furniture'.tr()},
-      {'key': 'CLOTHES', 'label': 'category_clothes'.tr()},
-      {'key': 'OTHERS', 'label': 'category_others'.tr()},
+      {'key': 'HOME', 'label': 'category_home'.tr()},
+      {'key': 'SPORTS', 'label': 'category_sports'.tr()},
+      {'key': 'CARS', 'label': 'category_cars'.tr()},
+      {'key': 'HANDMADE', 'label': 'category_handmade'.tr()},
+      {'key': 'OTHER', 'label': 'category_other'.tr()},
     ];
   }
 
@@ -93,7 +97,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                 final box = Hive.box('settings');
                 box.put('selected_category_index', index);
 
-                widget.onCategoryChanged(key); // 🔁 أرسل الـ key
+                widget.onCategoryChanged(key);
               },
               child: Column(
                 children: [
