@@ -10,4 +10,13 @@ class Bid {
     required this.amount,
     required this.time,
   });
+
+  factory Bid.fromJson(Map<String, dynamic> json) {
+  return Bid(
+    userId: json['userId'] ?? '',
+    userName: json['userName'] ?? '',
+    amount: (json['amount'] ?? 0).toDouble(),
+    time: DateTime.parse(json['time']),
+  );
+}
 }

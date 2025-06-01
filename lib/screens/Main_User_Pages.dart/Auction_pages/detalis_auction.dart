@@ -1,8 +1,9 @@
 import 'dart:async';
 
+import 'package:application/API_Service/api.dart';
 import 'package:application/models/action.dart';
 import 'package:application/models/bid.dart';
-import 'package:application/models/post.dart';
+import 'package:application/models/post_2.dart';
 import 'package:application/screens/Main_User_Pages.dart/Auction_pages/bid_button_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -11,16 +12,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:application/constants/app_colors.dart';
 
 class AuctionDetailPage extends StatefulWidget {
-  final Auction auction;
-  final List<Post> posts;
-  final List<Bid> bids;
-
-  const AuctionDetailPage({
-    super.key,
-    required this.auction,
-    required this.posts,
-    required this.bids,
-  });
+  const AuctionDetailPage({super.key});
 
   @override
   State<AuctionDetailPage> createState() => _AuctionDetailPageState();
@@ -36,16 +28,39 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
   final PageController _pageController = PageController();
   late DateTime _endTime;
 
+  Auction? _auction;
+  List<Post> _posts = [];
+  List<Bid> _bids = [];
+  bool _isLoading = true;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    if (widget.posts.isNotEmpty) {
-      selectedPost = widget.posts.first;
-    }
+    _fetchAuctionData();
+  }
 
-    _endTime = DateTime.now().add(const Duration(minutes: 1));
-    _initializeAuctionTimer();
+  Future<void> _fetchAuctionData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final api = ApiService();
+      _auction = await api.getAuctionById("1");
+      _posts = _auction?.posts ?? [];
+      selectedPost = _posts.first;
+      _bids = selectedPost?.bids ?? [];
+      _endTime = _auction?.endTime ?? DateTime.now().add(Duration(minutes: 1));
+      _initializeAuctionTimer();
+      setState(() => _isLoading = false);
+    } catch (e) {
+      setState(() {
+        _error = 'فشل تحميل بيانات المزاد';
+        _isLoading = false;
+      });
+    }
   }
 
   void _initializeAuctionTimer() {
@@ -79,11 +94,27 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
 
   @override
   Widget build(BuildContext context) {
+     if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null || _auction == null || selectedPost == null) {
+      return Scaffold(
+        body: Center(
+          child: Text(
+            _error ?? 'خطأ غير معروف',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground(context),
       appBar: AppBar(
         title: Text(
-          widget.auction.title,
+          _auction!.title,
           style: TextStyle(color: AppColors.textPrimary(context)),
         ),
         backgroundColor: AppColors.cardBackground(context),
@@ -155,11 +186,12 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     final totalDuration = const Duration(minutes: 1);
     final progress =
         1 - (_timeLeft.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0);
-    final Color barColor = Color.lerp(
-      AppColors.timerGreen(context),
-      AppColors.timerRed(context),
-      progress,
-    )!;
+    final Color barColor =
+        Color.lerp(
+          AppColors.timerGreen(context),
+          AppColors.timerRed(context),
+          progress,
+        )!;
 
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final h = twoDigits(_timeLeft.inHours % 24);
@@ -227,14 +259,15 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                   child: Image.asset(
                     image,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: AppColors.surfaceVariant(context),
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 50,
-                        color: AppColors.textSecondary(context),
-                      ),
-                    ),
+                    errorBuilder:
+                        (context, error, stackTrace) => Container(
+                          color: AppColors.surfaceVariant(context),
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: AppColors.textSecondary(context),
+                          ),
+                        ),
                   ),
                 ),
               );
@@ -262,9 +295,10 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _selectedPostIndex == index
-                  ? AppColors.primaryLightDark(context)
-                  : Colors.white.withOpacity(0.5),
+              color:
+                  _selectedPostIndex == index
+                      ? AppColors.primaryLightDark(context)
+                      : Colors.white.withOpacity(0.5),
             ),
           ),
         ),
@@ -317,7 +351,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            widget.auction.category,
+            _auction!.category,
             style: TextStyle(
               color: AppColors.primaryLightDark(context),
               fontWeight: FontWeight.bold,
@@ -342,17 +376,11 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
   Widget _buildStats() {
     return Row(
       children: [
-        Icon(
-          Icons.gavel,
-          size: 16,
-          color: AppColors.textSecondary(context),
-        ),
+        Icon(Icons.gavel, size: 16, color: AppColors.textSecondary(context)),
         const SizedBox(width: 4),
         Text(
           'bidders'.tr(
-            namedArgs: {
-              'count': widget.auction.participantCount.toString(),
-            },
+            namedArgs: {'count': _auction!.participantCount.toString()},
           ),
           style: TextStyle(color: AppColors.textSecondary(context)),
         ),
@@ -364,11 +392,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
         ),
         const SizedBox(width: 4),
         Text(
-          "views".tr(
-            namedArgs: {
-              'count': widget.auction.viewCount.toString(),
-            },
-          ),
+          "views".tr(namedArgs: {'count': _auction!.viewCount.toString()}),
           style: TextStyle(color: AppColors.textSecondary(context)),
         ),
       ],
@@ -402,7 +426,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
               ),
               const SizedBox(height: 4),
               Text(
-                "NIS ${widget.auction.currentHighestBid.toStringAsFixed(2)}",
+                "NIS ${_auction!.currentHighestBid.toStringAsFixed(2)}",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -431,14 +455,11 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
               children: [
                 const Text(
                   "place_bid",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "NIS ${(widget.auction.currentHighestBid + 50).toStringAsFixed(2)}",
+                  "NIS ${(_auction!.currentHighestBid + 50).toStringAsFixed(2)}",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -483,7 +504,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                     ),
                   ),
                   Text(
-                    "NIS ${widget.auction.currentHighestBid.toStringAsFixed(2)}",
+                    "NIS ${_auction!.currentHighestBid.toStringAsFixed(2)}",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -501,16 +522,18 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) => BidBottomSheet(
+                    builder:
+                        (context) => BidBottomSheet(
+                          /*
                       onBidPlaced: () {
                         setState(() {
                           _timer?.cancel();
                           _timeLeft = const Duration(minutes: 1);
                           _initializeAuctionTimer();
                         });
-                      },
-                      post: selectedPost,
-                    ),
+                      },*/
+                          //post: selectedPost,
+                        ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -553,12 +576,13 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           decoration: BoxDecoration(
             color: AppColors.cardBackground(context),
             borderRadius: BorderRadius.circular(12),
-            border: isFirst
-                ? Border.all(
-                    color: AppColors.primaryLightDark(context),
-                    width: 2,
-                  )
-                : null,
+            border:
+                isFirst
+                    ? Border.all(
+                      color: AppColors.primaryLightDark(context),
+                      width: 2,
+                    )
+                    : null,
             boxShadow: [
               BoxShadow(
                 color: AppColors.shadowLight(context),
@@ -617,13 +641,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                 ),
               ),
               Text(
-                "NIS ${selectedPost.currentBid.toStringAsFixed(2)}",
+                "NIS ${selectedPost.currentBid?.toStringAsFixed(2)}",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: isFirst
-                      ? AppColors.primaryLightDark(context)
-                      : AppColors.textPrimary(context),
+                  color:
+                      isFirst
+                          ? AppColors.primaryLightDark(context)
+                          : AppColors.textPrimary(context),
                 ),
               ),
             ],
@@ -686,7 +711,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
               _buildInfoRow(
                 icon: Icons.category,
                 title: "category".tr(),
-                value: widget.auction.category,
+                value: _auction!.category,
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
@@ -694,7 +719,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                 title: "bidders_count".tr(),
                 value: "bidders".tr(
                   namedArgs: {
-                    'count': widget.auction.participantCount.toString(),
+                    'count': _auction!.participantCount.toString(),
                   },
                 ),
               ),
@@ -703,14 +728,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                 icon: Icons.remove_red_eye,
                 title: "views".tr(),
                 value: "views".tr(
-                  namedArgs: {'count': widget.auction.viewCount.toString()},
+                  namedArgs: {'count': _auction!.viewCount.toString()},
                 ),
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
                 icon: Icons.price_change,
                 title: "min_bid".tr(),
-                value: "NIS ${selectedPost.bid_step.toStringAsFixed(2)}",
+                value: "NIS ${selectedPost.bidStep.toStringAsFixed(2)}",
               ),
             ],
           ),
@@ -764,11 +789,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: AppColors.textSecondary(context),
-          ),
+          Icon(icon, size: 20, color: AppColors.textSecondary(context)),
           const SizedBox(width: 12),
           Text(
             title,
@@ -899,20 +920,13 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
       decoration: BoxDecoration(
         color: AppColors.getInfoCardBackground(context, color),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.getInfoCardBorder(context, color),
-        ),
+        border: Border.all(color: AppColors.getInfoCardBorder(context, color)),
       ),
       child: Row(
         children: [
           Icon(icon, color: color),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: color),
-            ),
-          ),
+          Expanded(child: Text(text, style: TextStyle(color: color))),
         ],
       ),
     );
@@ -923,7 +937,10 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.getInfoCardBackground(context, AppColors.info(context)),
+        color: AppColors.getInfoCardBackground(
+          context,
+          AppColors.info(context),
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.getInfoCardBorder(context, AppColors.info(context)),
@@ -934,10 +951,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
         children: [
           Row(
             children: [
-              Icon(
-                Icons.support_agent,
-                color: AppColors.info(context),
-              ),
+              Icon(Icons.support_agent, color: AppColors.info(context)),
               const SizedBox(width: 12),
               Text(
                 "support.title".tr(),
@@ -1032,10 +1046,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(
-      color: AppColors.cardBackground(context),
-      child: _tabBar,
-    );
+    return Container(color: AppColors.cardBackground(context), child: _tabBar);
   }
 
   @override

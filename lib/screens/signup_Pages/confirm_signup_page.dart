@@ -1,3 +1,4 @@
+import 'package:application/API_Service/api.dart';
 import 'package:application/main.dart';
 import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,39 @@ class ConfirmSignUpPage extends StatefulWidget {
 
 class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
   bool _obscurePassword = true;
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+  final TextEditingController genderController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final fullUserData =
+          GoRouterState.of(context).extra as Map<String, dynamic>;
+      fullNameController.text =
+          '${fullUserData['firstName']} ${fullUserData['lastName']}';
+      phoneController.text = fullUserData['phone'];
+      cityController.text = fullUserData['city'];
+      genderController.text = fullUserData['gender'];
+      emailController.text = fullUserData['email'];
+      passwordController.text = fullUserData['password'];
+    });
+  }
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    phoneController.dispose();
+    cityController.dispose();
+    genderController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +56,8 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
     final height = size.height;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final Map<String, dynamic> fullUserData =
+        GoRouterState.of(context).extra as Map<String, dynamic>;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -70,6 +106,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           hint: 'signup.hints.fullName'.tr(),
                           icon: Icons.person,
                           colorScheme: colorScheme,
+                          controller: fullNameController,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
@@ -77,6 +114,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           hint: 'signup.hints.phone'.tr(),
                           icon: Icons.phone,
                           colorScheme: colorScheme,
+                          controller: phoneController,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
@@ -84,6 +122,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           hint: 'signup.hints.city'.tr(),
                           icon: Icons.location_city,
                           colorScheme: colorScheme,
+                          controller: cityController,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
@@ -91,6 +130,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           hint: 'signup.hints.gender'.tr(),
                           icon: Icons.person_outline,
                           colorScheme: colorScheme,
+                          controller: genderController,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
@@ -98,6 +138,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           hint: 'signup.hints.email'.tr(),
                           icon: Icons.email,
                           colorScheme: colorScheme,
+                          controller: emailController,
                         ),
                         const SizedBox(height: 16),
                         _buildField(
@@ -107,6 +148,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           obscure: _obscurePassword,
                           isPassword: true,
                           colorScheme: colorScheme,
+                          controller: passwordController,
                         ),
 
                         const SizedBox(height: 30),
@@ -115,9 +157,75 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: () {
-                              context.go('/home_page', extra: posts);
+                            onPressed: () async {
+                              final firstName =
+                                  fullUserData['firstName']?.trim();
+                              final lastName = fullUserData['lastName']?.trim();
+                              final phone = phoneController.text.trim();
+                              final city = cityController.text.trim();
+                              final gender = genderController.text.trim();
+                              final email = emailController.text.trim();
+                              final password = passwordController.text.trim();
+
+                              if (firstName == null ||
+                                  firstName.isEmpty ||
+                                  lastName == null ||
+                                  lastName.isEmpty ||
+                                  phone.isEmpty ||
+                                  city.isEmpty ||
+                                  gender.isEmpty ||
+                                  email.isEmpty ||
+                                  password.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      "يرجى تعبئة جميع الحقول",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    margin: const EdgeInsets.all(16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final user = {
+                                "firstName": firstName,
+                                "lastName": lastName,
+                                "phone": phone,
+                                "city": city,
+                                "gender": gender,
+                                "email": email,
+                                "password": password,
+                              };
+
+                              final api = ApiService();
+                              final response = await api.registerUser(user);
+
+                              if (response != null) {
+                                context.go('/home_page');
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      "فشل في إنشاء الحساب. حاول مرة أخرى.",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    margin: const EdgeInsets.all(16),
+                                  ),
+                                );
+                              }
                             },
+
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorScheme.secondary,
                               shape: RoundedRectangleBorder(
@@ -152,6 +260,7 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
     required String label,
     required String hint,
     required IconData icon,
+    required TextEditingController controller,
     required ColorScheme colorScheme,
     bool obscure = false,
     bool isPassword = false,
@@ -181,11 +290,14 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
         const SizedBox(width: 12),
         Expanded(
           child: TextField(
+            controller: controller,
             obscureText: obscure,
             decoration: InputDecoration(
               hintText: hint,
               isDense: true,
-              hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
+              hintStyle: TextStyle(
+                color: colorScheme.onSurface.withOpacity(0.6),
+              ),
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(color: colorScheme.primary),
@@ -193,19 +305,20 @@ class _ConfirmSignUpPageState extends State<ConfirmSignUpPage> {
               focusedBorder: UnderlineInputBorder(
                 borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
-              suffixIcon: isPassword
-                  ? IconButton(
-                      icon: Icon(
-                        obscure ? Icons.visibility_off : Icons.visibility,
-                        color: colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    )
-                  : null,
+              suffixIcon:
+                  isPassword
+                      ? IconButton(
+                        icon: Icon(
+                          obscure ? Icons.visibility_off : Icons.visibility,
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      )
+                      : null,
             ),
           ),
         ),

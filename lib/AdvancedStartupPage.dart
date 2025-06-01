@@ -132,6 +132,7 @@ Future<void> _startAnimations() async {
   await EasyLocalization.ensureInitialized();
   await Hive.initFlutter();
   final settingsBox = await Hive.openBox('settings');
+  settingsBox.put('selected_category_index', 0);
 
   // إعداد اللغة
   final savedLangCode = settingsBox.get('language', defaultValue: 'ar');
@@ -146,14 +147,22 @@ Future<void> _startAnimations() async {
   if (!mounted) return;
 
   // الانتقال للتطبيق الرئيسي
-  Navigator.of(context).pushReplacement(
-    MaterialPageRoute(
-      builder: (_) => ChangeNotifierProvider(
-        create: (_) => ThemeProvider(),
-        child: const MazadiApp(),
-      ),
+ final authBox = await Hive.openBox('authBox');
+final isLoggedIn = authBox.get('is_logged_in', defaultValue: false);
+
+// تحديد الصفحة المبدئية
+final startRoute = isLoggedIn ? '/home_page' : '/login';
+
+// شغل التطبيق حسب حالة الدخول
+Navigator.of(context).pushReplacement(
+  MaterialPageRoute(
+    builder: (_) => ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: MazadiApp(startRoute: startRoute),
     ),
-  );
+  ),
+);
+
 }
 
 

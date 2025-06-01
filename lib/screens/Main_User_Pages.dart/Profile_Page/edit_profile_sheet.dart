@@ -1,3 +1,4 @@
+import 'package:application/API_Service/api.dart';
 import 'package:application/screens/Main_User_Pages.dart/Profile_Page/change_pass_page/change_pass.dart';
 import 'package:flutter/material.dart';
 import 'package:application/constants/app_colors.dart';
@@ -6,8 +7,13 @@ import 'package:easy_localization/easy_localization.dart';
 
 class EditProfileSheet extends StatefulWidget {
   final User user;
+  final Function(User)? onUserUpdated;
 
-  const EditProfileSheet({super.key, required this.user});
+  const EditProfileSheet({
+    super.key, 
+    required this.user,
+    this.onUserUpdated,
+  });
 
   @override
   State<EditProfileSheet> createState() => _EditProfileSheetState();
@@ -20,6 +26,14 @@ class _EditProfileSheetState extends State<EditProfileSheet>
   String? selectedCity;
   String? selectedGender;
   bool _isLoading = false;
+  String? _error;
+
+  // API service instance
+  late final ApiService _apiService = ApiService();
+
+  // Form validation
+  final _formKey = GlobalKey<FormState>();
+  bool _hasChanges = false;
 
   late AnimationController _slideController;
   late AnimationController _fadeController;
@@ -44,14 +58,21 @@ class _EditProfileSheetState extends State<EditProfileSheet>
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
+    _initializeAnimations();
+    _addChangeListeners();
+  }
+
+  void _initializeControllers() {
     nameController = TextEditingController(
       text: "${widget.user.firstName} ${widget.user.lastName}",
     );
     phoneController = TextEditingController(text: widget.user.phoneNumber);
     selectedCity = widget.user.city;
     selectedGender = widget.user.gender;
+  }
 
-    // Initialize animations
+  void _initializeAnimations() {
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -73,6 +94,25 @@ class _EditProfileSheetState extends State<EditProfileSheet>
     _fadeController.forward();
   }
 
+  void _addChangeListeners() {
+    nameController.addListener(_checkForChanges);
+    phoneController.addListener(_checkForChanges);
+  }
+
+  void _checkForChanges() {
+    final currentName = "${widget.user.firstName} ${widget.user.lastName}";
+    final hasNameChanged = nameController.text.trim() != currentName;
+    final hasPhoneChanged = phoneController.text.trim() != widget.user.phoneNumber;
+    final hasCityChanged = selectedCity != widget.user.city;
+    final hasGenderChanged = selectedGender != widget.user.gender;
+
+    final newHasChanges = hasNameChanged || hasPhoneChanged || hasCityChanged || hasGenderChanged;
+    
+    if (newHasChanges != _hasChanges) {
+      setState(() => _hasChanges = newHasChanges);
+    }
+  }
+
   @override
   void dispose() {
     nameController.dispose();
@@ -82,10 +122,151 @@ class _EditProfileSheetState extends State<EditProfileSheet>
     super.dispose();
   }
 
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_hasChanges) {
+      _showMessage(tr('profile.no_changes'), isError: false);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Parse the full name into first and last name
+      final nameParts = nameController.text.trim().split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts[0] : '';
+      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+      // Create updated user object
+      final updatedUser = User(
+        id: widget.user.id,
+        firstName: firstName,
+        lastName: lastName,
+        phoneNumber: phoneController.text.trim(),
+        email: widget.user.email, 
+        city: selectedCity ?? widget.user.city,
+        gender: selectedGender ?? 
+        widget.user.gender, 
+        password: widget.user.password,
+        role: widget.user.role,
+
+      );
+
+      // Call API to update user
+      final apiUpdatedUser = await _apiService.updateUserProfile(updatedUser);
+      
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        // Call the callback to update parent widget
+        widget.onUserUpdated?.call(apiUpdatedUser);
+        
+        Navigator.pop(context, apiUpdatedUser); // Return updated user
+        _showSuccessMessage();
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
+      _showErrorMessage(e.toString());
+    }
+  }
+
+  void _showSuccessMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(tr('profile.save.success')),
+          ],
+        ),
+        backgroundColor: AppColors.success(context),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showErrorMessage(String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${tr('profile.save.error')}: $error',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.error(context),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: tr('common.retry'),
+          textColor: Colors.white,
+          onPressed: _saveChanges,
+        ),
+      ),
+    );
+  }
+
+  void _showMessage(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.error(context) : AppColors.info(context),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return tr('validation.name_required');
+    }
+    if (value.trim().length < 2) {
+      return tr('validation.name_too_short');
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return tr('validation.phone_required');
+    }
+    // Basic phone validation for Palestinian numbers
+    final phoneRegex = RegExp(r'^(\+970|0)(5[0-9]|2[0-9]|9[0-9])[0-9]{7}$');
+    if (!phoneRegex.hasMatch(value.trim())) {
+      return tr('validation.phone_invalid');
+    }
+    return null;
+  }
+
   Widget _buildAdvancedHeader() {
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
-    final isDesktop = screenSize.width > 1200;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -155,18 +336,32 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.all(isTablet ? 12 : 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(isTablet ? 14 : 10),
+              if (_hasChanges)
+                Container(
+                  padding: EdgeInsets.all(isTablet ? 12 : 8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(isTablet ? 14 : 10),
+                  ),
+                  child: Icon(
+                    Icons.edit,
+                    color: Colors.orange,
+                    size: isTablet ? 24 : 20,
+                  ),
+                )
+              else
+                Container(
+                  padding: EdgeInsets.all(isTablet ? 12 : 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(isTablet ? 14 : 10),
+                  ),
+                  child: Icon(
+                    Icons.person_outline,
+                    color: Colors.white,
+                    size: isTablet ? 24 : 20,
+                  ),
                 ),
-                child: Icon(
-                  Icons.person_outline,
-                  color: Colors.white,
-                  size: isTablet ? 24 : 20,
-                ),
-              ),
             ],
           ),
         ],
@@ -179,6 +374,7 @@ class _EditProfileSheetState extends State<EditProfileSheet>
     TextEditingController controller,
     IconData icon, {
     TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
   }) {
     final screenSize = MediaQuery.of(context).size;
     final isTablet = screenSize.width > 600;
@@ -210,9 +406,10 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                 ),
               ],
             ),
-            child: TextField(
+            child: TextFormField(
               controller: controller,
               keyboardType: keyboardType,
+              validator: validator,
               style: TextStyle(
                 fontSize: isTablet ? 18 : 16,
                 fontWeight: FontWeight.w500,
@@ -246,6 +443,20 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
                   borderSide: BorderSide(
                     color: AppColors.primaryLightDark(context),
+                    width: 2,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
+                  borderSide: BorderSide(
+                    color: AppColors.error(context),
+                    width: 2,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
+                  borderSide: BorderSide(
+                    color: AppColors.error(context),
                     width: 2,
                   ),
                 ),
@@ -353,7 +564,16 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                   ),
                 );
               }).toList(),
-              onChanged: onChanged,
+              onChanged: (value) {
+                onChanged(value);
+                _checkForChanges();
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return tr('validation.field_required');
+                }
+                return null;
+              },
               icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: AppColors.primaryLightDark(context),
@@ -397,8 +617,8 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               fontWeight: FontWeight.w600,
             ),
           ),
-          onPressed: () {
-            showModalBottomSheet(
+          onPressed: () async {
+            final result = await showModalBottomSheet<bool>(
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
@@ -410,9 +630,17 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                     top: Radius.circular(24),
                   ),
                 ),
-                child: ChangePasswordPage(user: widget.user),
+                child: ChangePasswordPage(),
               ),
             );
+
+            // If password was changed successfully, show message
+            if (result == true && mounted) {
+              _showMessage(
+                tr('profile.password.change_success'), 
+                isError: false,
+              );
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.passwordButtonBackground(context),
@@ -440,15 +668,22 @@ class _EditProfileSheetState extends State<EditProfileSheet>
       height: isTablet ? 60 : 50,
       margin: EdgeInsets.symmetric(vertical: isTablet ? 16 : 12),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient(context),
+        gradient: _hasChanges 
+            ? AppColors.primaryGradient(context)
+            : LinearGradient(
+                colors: [
+                  AppColors.textSecondary(context).withOpacity(0.3),
+                  AppColors.textSecondary(context).withOpacity(0.2),
+                ],
+              ),
         borderRadius: BorderRadius.circular(isTablet ? 18 : 14),
-        boxShadow: [
+        boxShadow: _hasChanges ? [
           BoxShadow(
             color: AppColors.primaryLightDark(context).withOpacity(0.4),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
-        ],
+        ] : [],
       ),
       child: ElevatedButton.icon(
         icon: _isLoading
@@ -461,19 +696,23 @@ class _EditProfileSheetState extends State<EditProfileSheet>
                 ),
               )
             : Icon(
-                Icons.save_outlined,
+                _hasChanges ? Icons.save_outlined : Icons.check_circle_outline,
                 color: Colors.white,
                 size: isTablet ? 24 : 20,
               ),
         label: Text(
-          _isLoading ? tr('profile.save.loading') : tr('profile.save.button'),
+          _isLoading 
+              ? tr('profile.save.loading') 
+              : _hasChanges 
+                  ? tr('profile.save.button')
+                  : tr('profile.save.no_changes'),
           style: TextStyle(
             color: Colors.white,
             fontSize: isTablet ? 18 : 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-        onPressed: _isLoading ? null : _saveChanges,
+        onPressed: (_isLoading || !_hasChanges) ? null : _saveChanges,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -483,36 +722,6 @@ class _EditProfileSheetState extends State<EditProfileSheet>
         ),
       ),
     );
-  }
-
-  void _saveChanges() async {
-    setState(() => _isLoading = true);
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(tr('profile.save.success')),
-            ],
-          ),
-          backgroundColor: AppColors.success(context),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-    }
   }
 
   Widget _buildInfoCard() {
@@ -573,6 +782,52 @@ class _EditProfileSheetState extends State<EditProfileSheet>
     );
   }
 
+  Widget _buildErrorDisplay() {
+    if (_error == null) return const SizedBox.shrink();
+    
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 600;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
+      padding: EdgeInsets.all(isTablet ? 16 : 12),
+      decoration: BoxDecoration(
+        color: AppColors.error(context).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
+        border: Border.all(
+          color: AppColors.error(context).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: AppColors.error(context),
+            size: isTablet ? 24 : 20,
+          ),
+          SizedBox(width: isTablet ? 12 : 8),
+          Expanded(
+            child: Text(
+              _error!,
+              style: TextStyle(
+                color: AppColors.error(context),
+                fontSize: isTablet ? 14 : 12,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.close,
+              color: AppColors.error(context),
+              size: isTablet ? 20 : 18,
+            ),
+            onPressed: () => setState(() => _error = null),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -605,87 +860,93 @@ class _EditProfileSheetState extends State<EditProfileSheet>
               ),
             ],
           ),
-          child: Column(
-            children: [
-              _buildAdvancedHeader(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isTablet ? 24 : 16),
-                  child: Column(
-                    children: [
-                      _buildInfoCard(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _buildAdvancedHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isTablet ? 24 : 16),
+                    child: Column(
+                      children: [
+                        _buildInfoCard(),
+                        _buildErrorDisplay(),
 
-                      _buildAdvancedTextField(
-                        tr('profile.fields.fullName'),
-                        nameController,
-                        Icons.person_outline,
-                      ),
-
-                      _buildAdvancedTextField(
-                        tr('profile.fields.phone'),
-                        phoneController,
-                        Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                      ),
-
-                      _buildAdvancedDropdownField(
-                        tr('profile.fields.city'),
-                        selectedCity,
-                        palestinianCities,
-                        (value) => setState(() => selectedCity = value),
-                        Icons.location_city_outlined,
-                      ),
-
-                      _buildAdvancedDropdownField(
-                        tr('profile.fields.gender'),
-                        selectedGender,
-                        genders,
-                        (value) => setState(() => selectedGender = value),
-                        Icons.person_pin_outlined,
-                      ),
-
-                      // Divider
-                      Container(
-                        margin: EdgeInsets.symmetric(
-                          vertical: isTablet ? 24 : 20,
+                        _buildAdvancedTextField(
+                          tr('profile.fields.fullName'),
+                          nameController,
+                          Icons.person_outline,
+                          validator: _validateName,
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Divider(color: AppColors.divider(context)),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isTablet ? 16 : 12,
+
+                        _buildAdvancedTextField(
+                          tr('profile.fields.phone'),
+                          phoneController,
+                          Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                          validator: _validatePhone,
+                        ),
+
+                        _buildAdvancedDropdownField(
+                          tr('profile.fields.city'),
+                          selectedCity,
+                          palestinianCities,
+                          (value) => setState(() => selectedCity = value),
+                          Icons.location_city_outlined,
+                        ),
+
+                        _buildAdvancedDropdownField(
+                          tr('profile.fields.gender'),
+                          selectedGender,
+                          genders,
+                          (value) => setState(() => selectedGender = value),
+                          Icons.person_pin_outlined,
+                        ),
+
+                        // Divider
+                        Container(
+                          margin: EdgeInsets.symmetric(
+                            vertical: isTablet ? 24 : 20,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Divider(color: AppColors.divider(context)),
                               ),
-                              child: Text(
-                                tr('profile.security.title'),
-                                style: TextStyle(
-                                  color: AppColors.textSecondary(context),
-                                  fontSize: isTablet ? 14 : 12,
-                                  fontWeight: FontWeight.w500,
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isTablet ? 16 : 12,
+                                ),
+                                child: Text(
+                                  tr('profile.security.title'),
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary(context),
+                                    fontSize: isTablet ? 14 : 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: Divider(color: AppColors.divider(context)),
-                            ),
-                          ],
+                              Expanded(
+                                child: Divider(color: AppColors.divider(context)),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      _buildAdvancedPasswordButton(),
+                        _buildAdvancedPasswordButton(),
 
-                      SizedBox(height: isTablet ? 24 : 20),
+                        SizedBox(height: isTablet ? 24 : 20),
 
-                      _buildAdvancedSaveButton(),
+                        _buildAdvancedSaveButton(),
 
-                      SizedBox(height: isTablet ? 20 : 16),
-                    ],
+                        SizedBox(height: isTablet ? 20 : 16),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

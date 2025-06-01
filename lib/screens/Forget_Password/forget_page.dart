@@ -1,11 +1,55 @@
+import 'package:application/API_Service/api.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 
-class ForgetPasswordPage extends StatelessWidget {
+class ForgetPasswordPage extends StatefulWidget {
   const ForgetPasswordPage({super.key});
+
+  @override
+  State<ForgetPasswordPage> createState() => _ForgetPasswordPageState();
+}
+
+class _ForgetPasswordPageState extends State<ForgetPasswordPage> {
+  final TextEditingController _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _sendCode() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('invalid_email'.tr())));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final api = ApiService();
+    final success = await api.sendVerificationCode(email);
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('verification_code_sent'.tr())));
+      // Navigate to next step (e.g., enter code)
+      // context.go('/verify_code', extra: email);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('sending_failed'.tr())));
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,14 +100,13 @@ class ForgetPasswordPage extends StatelessWidget {
 
                         // حقل البريد الإلكتروني
                         TextField(
+                          controller: _emailController,
                           style: TextStyle(
                             color: theme.textTheme.bodyLarge?.color,
                           ),
                           decoration: InputDecoration(
                             hintText: 'example@gmail.com',
-                            hintStyle: TextStyle(
-                              color: theme.hintColor,
-                            ),
+                            hintStyle: TextStyle(color: theme.hintColor),
                             prefixIcon: Icon(
                               Icons.mail_outline,
                               color: AppColors.primaryLightDark(context),
@@ -97,11 +140,11 @@ class ForgetPasswordPage extends StatelessWidget {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: () {
-                              // تنفيذ عملية الإرسال
-                            },
+                           onPressed: _isLoading ? null : _sendCode,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondaryLightDark(context),
+                              backgroundColor: AppColors.secondaryLightDark(
+                                context,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),

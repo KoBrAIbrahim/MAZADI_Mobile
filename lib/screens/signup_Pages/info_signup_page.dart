@@ -10,14 +10,42 @@ class SignUpPage extends StatefulWidget {
   @override
   State<SignUpPage> createState() => _SignUpPageState();
 }
+String getGenderKey(String value) {
+  switch (value.toLowerCase()) {
+    case 'male':
+    case 'ذكر':
+      return 'MALE';
+    case 'female':
+    case 'أنثى':
+      return 'FEMALE';
+    default:
+      return ''; // أو throw Exception إذا بدك
+  }
+}
 
 class _SignUpPageState extends State<SignUpPage> {
   String selectedGender = '';
   late String selectedCity;
+  late List<String> palestinianCities;
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    palestinianCities = [
+    tr('cities.ramallah'),
+    tr('cities.nablus'),
+    tr('cities.hebron'),
+    tr('cities.bethlehem'),
+    tr('cities.jenin'),
+    tr('cities.tulkarm'),
+    tr('cities.qalqilya'),
+    tr('cities.salfit'),
+    tr('cities.jericho'),
+    tr('cities.tubas'),
+  ];
     selectedCity = 'ramallah'.tr();
   }
 
@@ -68,6 +96,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         Expanded(
                           child: _buildInput(
                             'first_name'.tr(),
+                            controller: firstNameController,
                             icon: Icons.person,
                             colorScheme: colorScheme,
                           ),
@@ -76,6 +105,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         Expanded(
                           child: _buildInput(
                             'last_name'.tr(),
+                            controller: lastNameController,
                             icon: Icons.person,
                             colorScheme: colorScheme,
                           ),
@@ -86,6 +116,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     _buildInput(
                       'mobile_number'.tr(),
                       hint: 'phone_number_hint'.tr(),
+                      controller: phoneController,
                       icon: Icons.phone,
                       colorScheme: colorScheme,
                     ),
@@ -94,11 +125,18 @@ class _SignUpPageState extends State<SignUpPage> {
                     SizedBox(height: height * 0.03),
                     Row(
                       children: [
-                        Icon(Icons.person_outline, size: 20, color: colorScheme.onSurface),
+                        Icon(
+                          Icons.person_outline,
+                          size: 20,
+                          color: colorScheme.onSurface,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'gender'.tr(),
-                          style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                       ],
                     ),
@@ -146,7 +184,10 @@ class _SignUpPageState extends State<SignUpPage> {
                         CircleAvatar(
                           radius: 18,
                           backgroundColor: colorScheme.secondary,
-                          child: Icon(Icons.arrow_back, color: colorScheme.onSecondary),
+                          child: Icon(
+                            Icons.arrow_back,
+                            color: colorScheme.onSecondary,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Text(
@@ -161,7 +202,40 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => context.go('/account_signup_page'),
+                    onTap: () {
+                      if (firstNameController.text.trim().isEmpty ||
+                          lastNameController.text.trim().isEmpty ||
+                          phoneController.text.trim().isEmpty ||
+                          selectedCity.isEmpty ||
+                          selectedGender.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'يرجى تعبئة جميع الحقول',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.all(16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final userData = {
+                        "firstName": firstNameController.text.trim(),
+                        "lastName": lastNameController.text.trim(),
+                        "phone": phoneController.text.trim(),
+                        "city": selectedCity,
+                        "gender": getGenderKey(selectedGender),
+                      };
+
+                      context.go('/account_signup_page', extra: userData);
+                    },
+
                     child: Row(
                       children: [
                         Text(
@@ -176,7 +250,10 @@ class _SignUpPageState extends State<SignUpPage> {
                         CircleAvatar(
                           radius: 18,
                           backgroundColor: colorScheme.secondary,
-                          child: Icon(Icons.arrow_forward, color: colorScheme.onSecondary),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            color: colorScheme.onSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -190,11 +267,21 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _buildInput(String label, {String? hint, IconData? icon, required ColorScheme colorScheme}) {
+  Widget _buildInput(
+    String label, {
+    String? hint,
+    IconData? icon,
+    required ColorScheme colorScheme,
+    TextEditingController? controller,
+  }) {
     return TextField(
+      controller: controller,
       decoration: InputDecoration(
         hintText: hint ?? label,
-        prefixIcon: icon != null ? Icon(icon, size: 20, color: colorScheme.primary) : null,
+        prefixIcon:
+            icon != null
+                ? Icon(icon, size: 20, color: colorScheme.primary)
+                : null,
         hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
         enabledBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: colorScheme.primary),
@@ -214,7 +301,13 @@ class _SignUpPageState extends State<SignUpPage> {
           children: [
             Icon(Icons.location_city, size: 18, color: colorScheme.onSurface),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -245,7 +338,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: Icon(Icons.keyboard_arrow_down, color: colorScheme.primary),
+                child: Icon(
+                  Icons.keyboard_arrow_down,
+                  color: colorScheme.primary,
+                ),
               ),
               style: TextStyle(
                 color: colorScheme.onSurface,
@@ -255,11 +351,8 @@ class _SignUpPageState extends State<SignUpPage> {
               dropdownColor: colorScheme.background,
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
-              items: [
-                _buildCityItem('ramallah'.tr(), colorScheme),
-                _buildCityItem('nablus'.tr(), colorScheme),
-                _buildCityItem('hebron'.tr(), colorScheme),
-              ],
+             items: palestinianCities.map((city) => _buildCityItem(city, colorScheme)).toList(),
+
               onChanged: (value) {
                 setState(() {
                   selectedCity = value!;
@@ -272,7 +365,10 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  DropdownMenuItem<String> _buildCityItem(String city, ColorScheme colorScheme) {
+  DropdownMenuItem<String> _buildCityItem(
+    String city,
+    ColorScheme colorScheme,
+  ) {
     return DropdownMenuItem(
       value: city,
       child: Row(
@@ -280,14 +376,21 @@ class _SignUpPageState extends State<SignUpPage> {
           Icon(
             Icons.location_on,
             size: 18,
-            color: city == selectedCity ? colorScheme.primary : colorScheme.onSurface.withOpacity(0.5),
+            color:
+                city == selectedCity
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withOpacity(0.5),
           ),
           const SizedBox(width: 12),
           Text(
             city,
             style: TextStyle(
-              color: city == selectedCity ? colorScheme.primary : colorScheme.onSurface,
-              fontWeight: city == selectedCity ? FontWeight.bold : FontWeight.normal,
+              color:
+                  city == selectedCity
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+              fontWeight:
+                  city == selectedCity ? FontWeight.bold : FontWeight.normal,
               fontSize: 18,
             ),
           ),
@@ -314,22 +417,29 @@ class _SignUpPageState extends State<SignUpPage> {
               border: Border.all(color: colorScheme.primary, width: 2),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: selected
-                ? Center(
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(2),
+            child:
+                selected
+                    ? Center(
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                  )
-                : null,
+                    )
+                    : null,
           ),
         ),
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
         const SizedBox(width: 16),
       ],
     );

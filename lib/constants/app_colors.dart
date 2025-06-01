@@ -824,4 +824,10 @@ static Color getInfoIconBackground(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
           ? const Color(0xFFF59E0B)
           : Colors.orange.shade600;
+
+  /// Support category red color
+  static Color errorColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFEF4444)
+          : Colors.red.shade600;
 }

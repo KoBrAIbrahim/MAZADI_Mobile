@@ -1,7 +1,9 @@
+import 'package:application/API_Service/api.dart';
 import 'package:application/main.dart';
 import 'package:application/widgets/backgorund/BlurredBackground.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive/hive.dart';
 import '../../constants/app_colors.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -15,6 +17,44 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+
+  Future<void> loginAndRemember() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text;
+
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('please_fill_all_fields'.tr())),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  final api = ApiService();
+  final success = await api.login(email, password);
+
+  setState(() => _isLoading = false);
+
+  if (success) {
+    final box = Hive.box('authBox');
+    if (_rememberMe) {
+      await box.put('is_logged_in', true);
+      await box.put('logged_in_email', email);
+    }
+
+    context.go('/home_page');
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('login_failed'.tr())),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +106,7 @@ class _LoginPageState extends State<LoginPage> {
                           Icons.mail_outline,
                           'hint_email'.tr(),
                           false,
+                          _emailController
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -73,6 +114,7 @@ class _LoginPageState extends State<LoginPage> {
                           Icons.lock_outline,
                           'hint_password'.tr(),
                           true,
+                          _passwordController
                         ),
 
                         const SizedBox(height: 16),
@@ -92,21 +134,27 @@ class _LoginPageState extends State<LoginPage> {
                                     width: 20,
                                     height: 20,
                                     decoration: BoxDecoration(
-                                      color: _rememberMe
-                                          ? AppColors.secondaryLightDark(context)
-                                          : Colors.transparent,
+                                      color:
+                                          _rememberMe
+                                              ? AppColors.secondaryLightDark(
+                                                context,
+                                              )
+                                              : Colors.transparent,
                                       border: Border.all(
-                                        color: AppColors.secondaryLightDark(context),
+                                        color: AppColors.secondaryLightDark(
+                                          context,
+                                        ),
                                       ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: _rememberMe
-                                        ? const Icon(
-                                            Icons.check,
-                                            size: 16,
-                                            color: Colors.white,
-                                          )
-                                        : null,
+                                    child:
+                                        _rememberMe
+                                            ? const Icon(
+                                              Icons.check,
+                                              size: 16,
+                                              color: Colors.white,
+                                            )
+                                            : null,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -141,14 +189,14 @@ class _LoginPageState extends State<LoginPage> {
                           height: 50,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryLightDark(context),
+                              backgroundColor: AppColors.primaryLightDark(
+                                context,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            onPressed: () {
-                              context.go('/home_page', extra: posts);
-                            },
+                            onPressed: _isLoading ? null : loginAndRemember,
                             child: Text(
                               'login_title'.tr(),
                               style: const TextStyle(
@@ -200,10 +248,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField(BuildContext context, IconData icon, String hint, bool isPassword) {
+  Widget _buildTextField(
+    BuildContext context,
+    IconData icon,
+    String hint,
+    bool isPassword,
+    TextEditingController controller
+  ) {
     final theme = Theme.of(context);
 
     return TextField(
+      controller: controller,
       obscureText: isPassword ? _obscurePassword : false,
       style: TextStyle(color: theme.textTheme.bodyLarge?.color),
       decoration: InputDecoration(
@@ -227,19 +282,20 @@ class _LoginPageState extends State<LoginPage> {
             width: 2,
           ),
         ),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: theme.iconTheme.color,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              )
-            : null,
+        suffixIcon:
+            isPassword
+                ? IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: theme.iconTheme.color,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                )
+                : null,
       ),
     );
   }

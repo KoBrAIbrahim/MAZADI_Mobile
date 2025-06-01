@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/models/user.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ChangePasswordPage extends StatefulWidget {
-  final User user;
+  final String? userId; // Optional userId parameter for API calls
+  final String? userEmail; // Optional email parameter if User object not available
 
-  const ChangePasswordPage({super.key, required this.user});
+  const ChangePasswordPage({super.key, this.userId, this.userEmail});
 
   @override
   State<ChangePasswordPage> createState() => _ChangePasswordPageState();
@@ -20,6 +23,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
   final TextEditingController confirmPasswordController =
       TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // User data and loading states
+  User? user;
+  bool isLoadingUser = true;
+  String? userLoadError;
 
   bool isCurrentVisible = false;
   bool isNewVisible = false;
@@ -36,6 +44,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
+    _fetchUserData();
+    newPasswordController.addListener(_checkPasswordStrength);
+  }
+
+  void _initializeAnimations() {
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -58,8 +72,46 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
 
     _fadeController.forward();
     _slideController.forward();
+  }
 
-    newPasswordController.addListener(_checkPasswordStrength);
+  Future<void> _fetchUserData() async {
+    try {
+      setState(() {
+        isLoadingUser = true;
+        userLoadError = null;
+      });
+
+      // Replace with your actual API endpoint
+      final String apiUrl = 'https://your-api-endpoint.com/api/user/${widget.userId ?? 'current'}';
+      
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add your authorization headers here
+          // 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> userData = json.decode(response.body);
+        
+        setState(() {
+          user = User.fromJson(userData);
+          isLoadingUser = false;
+        });
+      } else {
+        setState(() {
+          userLoadError = 'Failed to load user data: ${response.statusCode}';
+          isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        userLoadError = 'Error loading user data: $e';
+        isLoadingUser = false;
+      });
+    }
   }
 
   @override
@@ -467,37 +519,192 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     );
   }
 
-  void _saveNewPassword() async {
+  Future<void> _saveNewPassword() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     setState(() => isLoading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() => isLoading = false);
-
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Text("password_updated_successfully".tr()),
-            ],
-          ),
-          backgroundColor: AppColors.success(context),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+    try {
+      // Replace with your actual API endpoint
+      final String apiUrl = 'https://your-api-endpoint.com/api/user/change-password';
+      
+      final response = await http.put(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add your authorization headers here
+          // 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'userId': widget.userId,
+          'currentPassword': currentPasswordController.text,
+          'newPassword': newPasswordController.text,
+          'confirmPassword': confirmPasswordController.text,
+        }),
       );
+
+      setState(() => isLoading = false);
+
+      if (response.statusCode == 200) {
+        // Success
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text("password_updated_successfully".tr()),
+                ],
+              ),
+              backgroundColor: AppColors.success(context),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      } else {
+        // Handle different error cases
+        String errorMessage;
+        if (response.statusCode == 400) {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message'] ?? 'Invalid password data'.tr();
+        } else if (response.statusCode == 401) {
+          errorMessage = 'Current password is incorrect'.tr();
+        } else if (response.statusCode == 403) {
+          errorMessage = 'Permission denied'.tr();
+        } else {
+          errorMessage = 'Failed to update password: ${response.statusCode}';
+        }
+
+        _showErrorDialog(errorMessage);
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      _showErrorDialog('Network error: $e'.tr());
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: AppColors.error(context),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              "error".tr(),
+              style: TextStyle(color: AppColors.textPrimary(context)),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: AppColors.textSecondary(context)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "ok".tr(),
+              style: TextStyle(color: AppColors.primaryLightDark(context)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget() {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 600;
+    
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppColors.primaryLightDark(context),
+            ),
+          ),
+          SizedBox(height: isTablet ? 24 : 16),
+          Text(
+            "loading_user_data".tr(),
+            style: TextStyle(
+              fontSize: isTablet ? 16 : 14,
+              color: AppColors.textSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 600;
+    
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(isTablet ? 40 : 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: isTablet ? 60 : 50,
+              color: AppColors.error(context),
+            ),
+            SizedBox(height: isTablet ? 16 : 12),
+            Text(
+              "error_loading_user".tr(),
+              style: TextStyle(
+                fontSize: isTablet ? 18 : 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: isTablet ? 8 : 6),
+            Text(
+              userLoadError ?? "unknown_error".tr(),
+              style: TextStyle(
+                fontSize: isTablet ? 14 : 12,
+                color: AppColors.textSecondary(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: isTablet ? 24 : 16),
+            ElevatedButton.icon(
+              onPressed: _fetchUserData,
+              icon: const Icon(Icons.refresh),
+              label: Text("retry".tr()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryLightDark(context),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildPasswordField({
@@ -709,291 +916,297 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
           ),
         ),
       ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Center(
-            child: Container(
-              width: maxWidth,
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(horizontalPadding),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Header Card
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isTablet ? 32 : 24),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient(context),
-                          borderRadius: BorderRadius.circular(
-                            isTablet ? 24 : 20,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryLightDark(context)
-                                  .withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(isTablet ? 20 : 16),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.security,
-                                size: isTablet ? 50 : 40,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: isTablet ? 20 : 16),
-                            Text(
-                              "protect_account_title".tr(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: isTablet ? 30 : 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: isTablet ? 12 : 8),
-                            Text(
-                              "protect_account_subtitle".tr(),
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: isTablet ? 16 : 14,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: isTablet ? 40 : 30),
-
-                      // Current User Info
-                      Container(
-                        padding: EdgeInsets.all(isTablet ? 24 : 20),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBackground(context),
-                          borderRadius: BorderRadius.circular(
-                            isTablet ? 20 : 16,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.shadowLight(context),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(isTablet ? 16 : 12),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLightDark(context)
-                                    .withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(
-                                  isTablet ? 16 : 12,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.email_outlined,
-                                color: AppColors.primaryLightDark(context),
-                                size: isTablet ? 28 : 24,
-                              ),
-                            ),
-                            SizedBox(width: isTablet ? 20 : 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "email_label".tr(),
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary(context),
-                                      fontSize: isTablet ? 14 : 12,
-                                      fontWeight: FontWeight.w500,
+      body: isLoadingUser 
+        ? _buildLoadingWidget()
+        : userLoadError != null
+          ? _buildErrorWidget()
+          : user != null
+            ? FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Center(
+                    child: Container(
+                      width: maxWidth,
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(horizontalPadding),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              // Header Card
+                              Container(
+                                width: double.infinity,
+                                padding: EdgeInsets.all(isTablet ? 32 : 24),
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient(context),
+                                  borderRadius: BorderRadius.circular(
+                                    isTablet ? 24 : 20,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryLightDark(context)
+                                          .withOpacity(0.3),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 10),
                                     ),
-                                  ),
-                                  SizedBox(height: isTablet ? 6 : 4),
-                                  Text(
-                                    widget.user.email,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isTablet ? 18 : 16,
-                                      color: AppColors.textPrimary(context),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: isTablet ? 40 : 30),
-
-                      // Form Fields
-                      _buildPasswordField(
-                        controller: currentPasswordController,
-                        label: "current_password_label".tr(),
-                        isVisible: isCurrentVisible,
-                        onVisibilityToggle: () =>
-                            setState(() => isCurrentVisible = !isCurrentVisible),
-                        validator: _validateCurrentPassword,
-                      ),
-
-                      SizedBox(height: isTablet ? 32 : 24),
-
-                      _buildPasswordField(
-                        controller: newPasswordController,
-                        label: "new_password_label".tr(),
-                        isVisible: isNewVisible,
-                        onVisibilityToggle: () =>
-                            setState(() => isNewVisible = !isNewVisible),
-                        validator: _validateNewPassword,
-                        showStrengthIndicator: true,
-                      ),
-
-                      SizedBox(height: isTablet ? 32 : 24),
-
-                      _buildPasswordField(
-                        controller: confirmPasswordController,
-                        label: "confirm_new_password_label".tr(),
-                        isVisible: isConfirmVisible,
-                        onVisibilityToggle: () =>
-                            setState(() => isConfirmVisible = !isConfirmVisible),
-                        validator: _validateConfirmPassword,
-                      ),
-
-                      SizedBox(height: isTablet ? 30 : 20),
-
-                      // Password Tips
-                      Container(
-                        padding: EdgeInsets.all(isTablet ? 20 : 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.getPasswordTipsBackground(context),
-                          borderRadius: BorderRadius.circular(
-                            isTablet ? 16 : 12,
-                          ),
-                          border: Border.all(
-                            color: AppColors.getPasswordTipsBorder(context),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.tips_and_updates,
-                                  color: AppColors.getPasswordTipsIcon(context),
-                                  size: isTablet ? 24 : 20,
+                                  ],
                                 ),
-                                SizedBox(width: isTablet ? 12 : 8),
-                                Text(
-                                  "password_tips_title".tr(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.getPasswordTipsText(context),
-                                    fontSize: isTablet ? 16 : 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: isTablet ? 12 : 8),
-                            Text(
-                              "password_tips_content".tr(),
-                              style: TextStyle(
-                                color: AppColors.getPasswordTipsText(context),
-                                fontSize: isTablet ? 14 : 12,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: isTablet ? 50 : 40),
-
-                      // Save Button
-                      Container(
-                        width: double.infinity,
-                        height: isTablet ? 64 : 56,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient(context),
-                          borderRadius: BorderRadius.circular(
-                            isTablet ? 20 : 16,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryLightDark(context)
-                                  .withOpacity(0.4),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _saveNewPassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                isTablet ? 20 : 16,
-                              ),
-                            ),
-                          ),
-                          child: isLoading
-                              ? SizedBox(
-                                  width: isTablet ? 28 : 24,
-                                  height: isTablet ? 28 : 24,
-                                  child: const CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                child: Column(
                                   children: [
-                                    Icon(
-                                      Icons.security,
-                                      color: Colors.white,
-                                      size: isTablet ? 28 : 24,
+                                    Container(
+                                      padding: EdgeInsets.all(isTablet ? 20 : 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.security,
+                                        size: isTablet ? 50 : 40,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                    SizedBox(width: isTablet ? 16 : 12),
+                                    SizedBox(height: isTablet ? 20 : 16),
                                     Text(
-                                      "save_changes".tr(),
+                                      "protect_account_title".tr(),
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: isTablet ? 18 : 16,
+                                        fontSize: isTablet ? 30 : 24,
                                         fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: isTablet ? 12 : 8),
+                                    Text(
+                                      "protect_account_subtitle".tr(),
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: isTablet ? 16 : 14,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              SizedBox(height: isTablet ? 40 : 30),
+
+                              // Current User Info
+                              Container(
+                                padding: EdgeInsets.all(isTablet ? 24 : 20),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBackground(context),
+                                  borderRadius: BorderRadius.circular(
+                                    isTablet ? 20 : 16,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.shadowLight(context),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(isTablet ? 16 : 12),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryLightDark(context)
+                                            .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(
+                                          isTablet ? 16 : 12,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.email_outlined,
+                                        color: AppColors.primaryLightDark(context),
+                                        size: isTablet ? 28 : 24,
+                                      ),
+                                    ),
+                                    SizedBox(width: isTablet ? 20 : 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "email_label".tr(),
+                                            style: TextStyle(
+                                              color: AppColors.textSecondary(context),
+                                              fontSize: isTablet ? 14 : 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          SizedBox(height: isTablet ? 6 : 4),
+                                          Text(
+                                            user!.email,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: isTablet ? 18 : 16,
+                                              color: AppColors.textPrimary(context),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
+                              ),
+
+                              SizedBox(height: isTablet ? 40 : 30),
+
+                              // Form Fields
+                              _buildPasswordField(
+                                controller: currentPasswordController,
+                                label: "current_password_label".tr(),
+                                isVisible: isCurrentVisible,
+                                onVisibilityToggle: () =>
+                                    setState(() => isCurrentVisible = !isCurrentVisible),
+                                validator: _validateCurrentPassword,
+                              ),
+
+                              SizedBox(height: isTablet ? 32 : 24),
+
+                              _buildPasswordField(
+                                controller: newPasswordController,
+                                label: "new_password_label".tr(),
+                                isVisible: isNewVisible,
+                                onVisibilityToggle: () =>
+                                    setState(() => isNewVisible = !isNewVisible),
+                                validator: _validateNewPassword,
+                                showStrengthIndicator: true,
+                              ),
+
+                              SizedBox(height: isTablet ? 32 : 24),
+
+                              _buildPasswordField(
+                                controller: confirmPasswordController,
+                                label: "confirm_new_password_label".tr(),
+                                isVisible: isConfirmVisible,
+                                onVisibilityToggle: () =>
+                                    setState(() => isConfirmVisible = !isConfirmVisible),
+                                validator: _validateConfirmPassword,
+                              ),
+
+                              SizedBox(height: isTablet ? 30 : 20),
+
+                              // Password Tips
+                              Container(
+                                padding: EdgeInsets.all(isTablet ? 20 : 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.getPasswordTipsBackground(context),
+                                  borderRadius: BorderRadius.circular(
+                                    isTablet ? 16 : 12,
+                                  ),
+                                  border: Border.all(
+                                    color: AppColors.getPasswordTipsBorder(context),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.tips_and_updates,
+                                          color: AppColors.getPasswordTipsIcon(context),
+                                          size: isTablet ? 24 : 20,
+                                        ),
+                                        SizedBox(width: isTablet ? 12 : 8),
+                                        Text(
+                                          "password_tips_title".tr(),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.getPasswordTipsText(context),
+                                            fontSize: isTablet ? 16 : 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: isTablet ? 12 : 8),
+                                    Text(
+                                      "password_tips_content".tr(),
+                                      style: TextStyle(
+                                        color: AppColors.getPasswordTipsText(context),
+                                        fontSize: isTablet ? 14 : 12,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              SizedBox(height: isTablet ? 50 : 40),
+
+                              // Save Button
+                              Container(
+                                width: double.infinity,
+                                height: isTablet ? 64 : 56,
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient(context),
+                                  borderRadius: BorderRadius.circular(
+                                    isTablet ? 20 : 16,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryLightDark(context)
+                                          .withOpacity(0.4),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: isLoading ? null : _saveNewPassword,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        isTablet ? 20 : 16,
+                                      ),
+                                    ),
+                                  ),
+                                  child: isLoading
+                                      ? SizedBox(
+                                          width: isTablet ? 28 : 24,
+                                          height: isTablet ? 28 : 24,
+                                          child: const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.security,
+                                              color: Colors.white,
+                                              size: isTablet ? 28 : 24,
+                                            ),
+                                            SizedBox(width: isTablet ? 16 : 12),
+                                            Text(
+                                              "save_changes".tr(),
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: isTablet ? 18 : 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
+
+                              SizedBox(height: isTablet ? 30 : 20),
+                            ],
+                          ),
                         ),
                       ),
-
-                      SizedBox(height: isTablet ? 30 : 20),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-      ),
+              )
+            : Container(), // Fallback empty container
     );
   }
 }

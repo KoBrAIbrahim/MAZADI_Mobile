@@ -3,7 +3,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class SearchBarWidget extends StatelessWidget {
-  const SearchBarWidget({super.key});
+  final ValueChanged<String>? onSearchChanged; // 🔁 متغير جديد
+  final ValueChanged<String>? onSortChanged;
+  final TextEditingController _controller = TextEditingController();
+
+  SearchBarWidget({super.key, this.onSearchChanged, this.onSortChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +37,7 @@ class SearchBarWidget extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
+                          controller: _controller,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: theme.textTheme.bodyLarge?.color,
@@ -43,6 +48,16 @@ class SearchBarWidget extends StatelessWidget {
                             hintStyle: TextStyle(color: Colors.grey[500]),
                             border: InputBorder.none,
                           ),
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) {
+                            final searchText = value.trim();
+                            if (searchText.isNotEmpty) {
+                              FocusScope.of(
+                                context,
+                              ).unfocus(); // ⬅️ يخفي الكيبورد
+                              onSearchChanged?.call(searchText);
+                            }
+                          },
                         ),
                       ),
                     ],
@@ -79,13 +94,22 @@ class SearchBarWidget extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const Positioned(
-                              right: 13,
-                              top: 11,
-                              child: Icon(
-                                Icons.search,
-                                color: Colors.white,
-                                size: 26,
+                            Positioned(
+                              right: 3,
+                              top: 2,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.search,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                                onPressed: () {
+                                  final searchText = _controller.text.trim();
+                                  if (searchText.isNotEmpty) {
+                                    onSearchChanged?.call(searchText);
+                                  }
+                                },
+                                splashRadius: 20,
                               ),
                             ),
                           ],
@@ -106,21 +130,28 @@ class SearchBarWidget extends StatelessWidget {
               width: MediaQuery.of(context).size.width * 0.17,
               height: MediaQuery.of(context).size.height * 0.068,
             ),
-            onPressed: () {
-              showModalBottomSheet(
+            onPressed: () async {
+              final selectedSort = await showModalBottomSheet<String>(
+                // 🔄 نوع الإرجاع
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: theme.scaffoldBackgroundColor, // ← دعم الوضع الليلي
+                backgroundColor: theme.scaffoldBackgroundColor,
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                builder: (_) => const FractionallySizedBox(
-                  heightFactor: 0.30,
-                  widthFactor: 1.0,
-                  child: FilterPage(),
-                ),
+                builder:
+                    (_) => const FractionallySizedBox(
+                      heightFactor: 0.30,
+                      child: FilterPage(),
+                    ),
               );
+
+              if (selectedSort != null) {
+                // 🔄 استدعِ callback أو setState داخل HomePage
+                onSortChanged?.call(selectedSort);
+              }
             },
+
             splashRadius: 10,
             tooltip: 'search.filter'.tr(),
           ),
@@ -129,8 +160,6 @@ class SearchBarWidget extends StatelessWidget {
     );
   }
 }
-
-
 
 // 🔁 الفاتح (السفلي) – من أسفل يمين ↗ إلى أعلى يسار
 class BottomShapePainterFlipped extends CustomPainter {

@@ -15,6 +15,11 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
   bool _isPasswordVisible = false;
   bool _isConfirmVisible = false;
 
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -22,6 +27,8 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
     final height = size.height;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final Map<String, dynamic> userData =
+        GoRouterState.of(context).extra as Map<String, dynamic>;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -69,6 +76,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
 
                         // Email
                         _buildInput(
+                          controller: emailController,
                           hint: 'email_hint'.tr(),
                           icon: Icons.email_outlined,
                           colorScheme: colorScheme,
@@ -77,6 +85,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
 
                         // Password
                         _buildInput(
+                          controller: passwordController,
                           hint: 'password_hint'.tr(),
                           icon: Icons.lock_outline,
                           obscure: !_isPasswordVisible,
@@ -92,6 +101,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
 
                         // Confirm Password
                         _buildInput(
+                          controller: confirmPasswordController,
                           hint: 'confirm_password_hint'.tr(),
                           icon: Icons.lock_outline,
                           obscure: !_isConfirmVisible,
@@ -111,8 +121,69 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () {
-                              context.go('/confirm_signup_page');
+                              final email = emailController.text;
+                              final password = passwordController.text;
+                              final confirmPassword =
+                                  confirmPasswordController.text;
+
+                              if ([
+                                email,
+                                password,
+                                confirmPassword,
+                              ].any((v) => v.trim().isEmpty)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'يرجى تعبئة جميع الحقول',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    margin: EdgeInsets.all(16),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Trim values after validation
+                              final trimmedEmail = email.trim();
+                              final trimmedPassword = password.trim();
+                              final trimmedConfirmPassword =
+                                  confirmPassword.trim();
+
+                              if (trimmedPassword != trimmedConfirmPassword) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'كلمات السر غير متطابقة',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    margin: EdgeInsets.all(16),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final fullData = {
+                                ...userData,
+                                'email': trimmedEmail,
+                                'password': trimmedPassword,
+                              };
+
+                              context.go(
+                                '/confirm_signup_page',
+                                extra: fullData,
+                              );
                             },
+
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorScheme.secondary,
                               shape: RoundedRectangleBorder(
@@ -152,9 +223,8 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
                                   const SizedBox(width: 10),
                                   Text(
                                     'back'.tr(),
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -176,6 +246,7 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
   }
 
   Widget _buildInput({
+    required TextEditingController controller,
     required String hint,
     required IconData icon,
     bool obscure = false,
@@ -184,20 +255,25 @@ class _AccountSignUpPageState extends State<AccountSignUpPage> {
     required ColorScheme colorScheme,
   }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
-        suffixIcon: isPassword
-            ? GestureDetector(
-                onTap: toggleVisibility,
-                child: Icon(
-                  obscure ? Icons.visibility_off : Icons.visibility,
-                  color: colorScheme.onSurface.withOpacity(0.6),
-                ),
-              )
-            : null,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        suffixIcon:
+            isPassword
+                ? GestureDetector(
+                  onTap: toggleVisibility,
+                  child: Icon(
+                    obscure ? Icons.visibility_off : Icons.visibility,
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                )
+                : null,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: colorScheme.primary),
