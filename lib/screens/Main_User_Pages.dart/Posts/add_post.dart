@@ -29,34 +29,44 @@ class _AddPostPageState extends State<AddPostPage>
 
   final List<Map<String, dynamic>> categories = [
     {
-      "icon": Icons.directions_car,
-      "label": "category_cars".tr(),
+      "icon": Icons.devices,
+      "label": "category_electronics".tr(),
       "color": Colors.blue,
     },
     {
-      "icon": Icons.phone_android,
-      "label": "category_phones".tr(),
-      "color": Colors.green,
-    },
-    {
-      "icon": Icons.laptop_mac,
-      "label": "category_laptops".tr(),
-      "color": Colors.purple,
-    },
-    {
-      "icon": Icons.home,
-      "label": "category_real_estate".tr(),
-      "color": Colors.orange,
-    },
-    {
-      "icon": Icons.watch,
-      "label": "category_watches".tr(),
-      "color": Colors.red,
+      "icon": Icons.shopping_bag,
+      "label": "category_fashion".tr(),
+      "color": Colors.pink,
     },
     {
       "icon": Icons.chair,
       "label": "category_furniture".tr(),
       "color": Colors.brown,
+    },
+    {
+      "icon": Icons.home,
+      "label": "category_home".tr(),
+      "color": Colors.orange,
+    },
+    {
+      "icon": Icons.sports_soccer,
+      "label": "category_sports".tr(),
+      "color": Colors.green,
+    },
+    {
+      "icon": Icons.directions_car,
+      "label": "category_cars".tr(),
+      "color": Colors.red,
+    },
+    {
+      "icon": Icons.handyman,
+      "label": "category_handmade".tr(),
+      "color": Colors.purple,
+    },
+    {
+      "icon": Icons.more_horiz,
+      "label": "category_other".tr(),
+      "color": Colors.grey,
     },
   ];
 

@@ -13,7 +13,7 @@ class ApiService {
   static String get baseUrl {
     if (Platform.isAndroid) {
       // Android emulator
-      return "http://192.168.1.102:8080";
+      return "http://192.168.1.4:8080";
     } else if (Platform.isIOS) {
       // iOS simulator can use localhost, but physical device needs IP
       return "http://localhost:8080";
@@ -715,7 +715,94 @@ class ApiService {
 
   placeBid(int id, double bidAmount) {}
 
-  updateUserProfile(User updatedUser) {}
+  // Add to api.dart
+  Future<User> updateUserProfile({
+    required int userId,
+    required User user,
+  }) async {
+    try {
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
 
-  getUserProfile(String? userId) {}
+      if (token == null) {
+        throw Exception('Access token not found');
+      }
+
+      final uri = Uri.parse('$baseUrl/common/$userId');
+
+      final body = jsonEncode({
+        'firstName': user.firstName,
+        'lastName': user.lastName,
+        'phone': user.phone,
+        'city': user.city,
+        'gender': user.gender.toUpperCase(),
+      });
+
+      final response = await http.patch(
+        uri,
+        headers: {
+          'accept': 'application/json',
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ Profile updated successfully');
+        // Parse the response and return the updated user
+        final Map<String, dynamic> userData = jsonDecode(response.body);
+        return User(
+          id: userData['id'] ?? userId,
+          firstName: userData['firstName'] ?? user.firstName,
+          lastName: userData['lastName'] ?? user.lastName,
+          email: userData['email'] ?? user.email,
+          phone: userData['phone'] ?? user.phone,
+          city: userData['city'] ?? user.city,
+          gender: userData['gender'] ?? user.gender,
+          password: user.password, // Keep the existing password
+          role: userData['role'] ?? user.role,
+        );
+      } else {
+        print('❌ Failed to update profile: ${response.statusCode}');
+        print('Response: ${response.body}');
+        throw Exception('Failed to update profile: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error updating profile: $e');
+      throw Exception('Error updating profile: $e');
+    }
+  }
+
+  // Change password API call
+  Future<http.Response> changePassword({
+    required String email,
+    required String oldPassword,
+    required String newPassword,
+    required String token
+  }) async {
+    final Uri uri = Uri.parse('$baseUrl/common/changePassword')
+        .replace(queryParameters: {
+      'email': email,
+      'oldPassword': oldPassword,
+      'newPassword': newPassword,
+    });
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('Password change status code: ${response.statusCode}');
+      return response;
+    } catch (e) {
+      print('Error changing password: $e');
+      rethrow;
+    }
+  }
+
 }

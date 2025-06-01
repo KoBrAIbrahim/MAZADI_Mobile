@@ -372,8 +372,10 @@
     "filter": "Filter"
   },
   "category_all": "All",
-  "category_clothes": "Clothes",
-  "category_others": "Other",
+  "category_fashion": "Fashion",
+  "category_home": "Home",
+  "category_sports": "Sports",
+  "category_handmade": "Handmade",
   "navbar": {
     "home": "Home",
     "auctions": "Auctions",
@@ -406,8 +408,8 @@
   "cities.tubas": "Tubas",
   "cities.tulkarm": "Tulkarm",
   "form_hint": "Enter form details",
-  "gender.female": "Female",
-  "gender.male": "Male",
+  "gender.female": "FEMALE",
+  "gender.male": "MALE",
   "home.pagination.ellipsis": "...",
   "home.title.interested": "Interested auctions",
   "home.title.main": "Home",

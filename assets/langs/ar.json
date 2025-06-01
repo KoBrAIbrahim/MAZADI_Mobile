@@ -372,8 +372,10 @@
     "filter": "فلترة"
   },
   "category_all": "الكل",
-  "category_clothes": "ملابس",
-  "category_others": "اخرى",
+  "category_fashion": "أزياء",
+  "category_home": "المنزل",
+  "category_sports": "رياضة",
+  "category_handmade": "حرف يدوية",
   "navbar": {
     "home": "الرئيسية",
     "auctions": "المزادات",

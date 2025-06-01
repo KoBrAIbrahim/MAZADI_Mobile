@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/models/user.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import '../../../../API_Service/api.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final String? userId; // Optional userId parameter for API calls
@@ -81,34 +84,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
         userLoadError = null;
       });
 
-      // Replace with your actual API endpoint
-      final String apiUrl = 'https://your-api-endpoint.com/api/user/${widget.userId ?? 'current'}';
-      
-      final response = await http.get(
-        Uri.parse(apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          // Add your authorization headers here
-          // 'Authorization': 'Bearer $token',
-        },
-      );
+      final data = await ApiService().getCurrentUser();
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> userData = json.decode(response.body);
-        
+      if (data != null) {
         setState(() {
-          user = User.fromJson(userData);
+          user = User.fromJson(data);
           isLoadingUser = false;
         });
       } else {
         setState(() {
-          userLoadError = 'Failed to load user data: ${response.statusCode}';
+          userLoadError = 'failed_to_load_user_data'.tr();
           isLoadingUser = false;
         });
       }
     } catch (e) {
       setState(() {
-        userLoadError = 'Error loading user data: $e';
+        userLoadError = 'error_loading_user_data: $e';
         isLoadingUser = false;
       });
     }
@@ -527,22 +518,19 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     setState(() => isLoading = true);
 
     try {
-      // Replace with your actual API endpoint
-      final String apiUrl = 'https://your-api-endpoint.com/api/user/change-password';
-      
-      final response = await http.put(
-        Uri.parse(apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          // Add your authorization headers here
-          // 'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'userId': widget.userId,
-          'currentPassword': currentPasswordController.text,
-          'newPassword': newPasswordController.text,
-          'confirmPassword': confirmPasswordController.text,
-        }),
+      // Get the user's email - either from the user object or widget parameter
+      final email = user?.email ?? widget.userEmail ?? '';
+
+      // Get token from secure storage or wherever you store it
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+
+
+      final response = await ApiService().changePassword(
+          email: email,
+          oldPassword: currentPasswordController.text,
+          newPassword: newPasswordController.text,
+          token: token
       );
 
       setState(() => isLoading = false);
@@ -550,14 +538,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       if (response.statusCode == 200) {
         // Success
         if (mounted) {
-          Navigator.pop(context);
+          Navigator.pop(context, true); // Return true to indicate success
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
                   const Icon(Icons.check_circle, color: Colors.white),
                   const SizedBox(width: 8),
-                  Text("password_updated_successfully".tr()),
+                  Text(tr('profile.password.change_success')),
                 ],
               ),
               backgroundColor: AppColors.success(context),
@@ -569,24 +557,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
           );
         }
       } else {
-        // Handle different error cases
+        // Handle error cases
         String errorMessage;
         if (response.statusCode == 400) {
-          final errorData = json.decode(response.body);
-          errorMessage = errorData['message'] ?? 'Invalid password data'.tr();
+          errorMessage = tr('profile.password.invalid_data');
         } else if (response.statusCode == 401) {
-          errorMessage = 'Current password is incorrect'.tr();
+          errorMessage = tr('profile.password.incorrect_current');
         } else if (response.statusCode == 403) {
-          errorMessage = 'Permission denied'.tr();
+          errorMessage = tr('profile.password.permission_denied');
         } else {
-          errorMessage = 'Failed to update password: ${response.statusCode}';
+          errorMessage = '${tr('profile.password.change_failed')}: ${response.statusCode}';
         }
-
         _showErrorDialog(errorMessage);
       }
     } catch (e) {
       setState(() => isLoading = false);
-      _showErrorDialog('Network error: $e'.tr());
+      _showErrorDialog('${tr('profile.password.network_error')}: $e');
     }
   }
 

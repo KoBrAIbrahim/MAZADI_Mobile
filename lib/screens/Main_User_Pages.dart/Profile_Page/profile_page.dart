@@ -9,6 +9,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../../../API_Service/api.dart';
+
 class ProfilePage extends StatefulWidget {
   final String? userId; // Optional userId parameter for API calls
 
@@ -121,31 +123,20 @@ class _ProfilePageState extends State<ProfilePage>
         errorMessage = null;
       });
 
-      // Replace with your actual API endpoint
-      final String apiUrl = 'https://your-api-endpoint.com/api/user/${widget.userId ?? 'current'}';
-      
-      final response = await http.get(
-        Uri.parse(apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          // Add your authorization headers here
-          // 'Authorization': 'Bearer $token',
-        },
-      );
+      // Use ApiService to get current user
+      final apiService = ApiService();
+      final userData = await apiService.getCurrentUser();
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> userData = json.decode(response.body);
-        
+      if (userData != null) {
         setState(() {
           user = User.fromJson(userData);
           isLoading = false;
         });
 
-        _debugUserProperties();
         _startAnimations();
       } else {
         setState(() {
-          errorMessage = 'Failed to load user data: ${response.statusCode}';
+          errorMessage = 'Failed to load user data: No data returned';
           isLoading = false;
         });
       }
@@ -185,19 +176,6 @@ class _ProfilePageState extends State<ProfilePage>
     } else {
       return value.toString();
     }
-  }
-
-  void _debugUserProperties() {
-    if (user == null) return;
-    
-    print('=== User Properties Debug ===');
-    print('firstName type: ${user!.firstName.runtimeType} - value: ${user!.firstName}');
-    print('lastName type: ${user!.lastName.runtimeType} - value: ${user!.lastName}');
-    print('email type: ${user!.email.runtimeType} - value: ${user!.email}');
-    print('city type: ${user!.city.runtimeType} - value: ${user!.city}');
-    print('phoneNumber type: ${user!.phoneNumber.runtimeType} - value: ${user!.phoneNumber}');
-    print('gender type: ${user!.gender.runtimeType} - value: ${user!.gender}');
-    print('==============================');
   }
 
   @override
@@ -555,7 +533,7 @@ class _ProfilePageState extends State<ProfilePage>
       {
         'icon': Icons.phone_outlined,
         'title': 'phone'.tr(),
-        'value': _getSafeStringValue(user!.phoneNumber),
+        'value': _getSafeStringValue(user!.phone),
         'color': AppColors.infoGridPhone(context),
       },
       {
@@ -927,7 +905,14 @@ class _ProfilePageState extends State<ProfilePage>
                       top: Radius.circular(24),
                     ),
                   ),
-                  child: EditProfileSheet(user: user!),
+                  child: EditProfileSheet(
+                    user: user!,
+                    onUserUpdated: (updatedUser) async {
+                      // تحدث فقط إذا تم حفظ البيانات فعلاً
+                      await _refreshUserData(); // أعد تحميل البيانات
+                    },
+                  ),
+
                 ),
               );
             },
