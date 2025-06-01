@@ -13,23 +13,19 @@ class LowerBar extends StatelessWidget {
   void _handleTap(BuildContext context, int index) {
     switch (index) {
       case 0:
-        context.go('/home_page', extra: posts);
+        context.go('/home_page');
         break;
       case 1:
-        context.go('/main_auction', extra: {
-          'auction': auctions,
-          'posts': posts,
-          'bids': bids,
-        });
+        context.go('/main_auction');
         break;
       case 2:
-        context.go('/interested', extra: posts);
+        context.go('/interested');
         break;
       case 3:
-        context.go('/my_posts', extra: posts);
+        context.go('/my_posts');
         break;
       case 4:
-        context.go('/profile', extra: testUser);
+        context.go('/profile');
         break;
     }
   }

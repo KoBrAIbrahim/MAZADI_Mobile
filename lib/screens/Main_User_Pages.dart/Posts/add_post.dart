@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:application/API_Service/api.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -134,54 +135,86 @@ class _AddPostPageState extends State<AddPostPage>
     });
   }
 
-  void submitPost() {
+  void submitPost() async {
     if (!validateForm()) return;
 
-    setState(() {
-      isSubmitting = true;
-    });
+    setState(() => isSubmitting = true);
 
-    // Simulate API call
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        isSubmitting = false;
-      });
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.cardBackground(context),
-          title: Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: AppColors.success(context),
-              ),
-              SizedBox(width: 10),
-              Text(
-                "success".tr(),
-                style: TextStyle(color: AppColors.textPrimary(context)),
-              ),
-            ],
-          ),
-          content: Text(
-            "post_success".tr(),
-            style: TextStyle(color: AppColors.textSecondary(context)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                resetForm();
-              },
-              child: Text(
-                "ok".tr(),
-                style: TextStyle(color: AppColors.primaryLightDark(context)),
-              ),
-            ),
-          ],
-        ),
+    try {
+      final api = ApiService();
+
+      // ✅ 1. استدعاء API لجلب auction المناسب
+      final auctionData = await api.getAuctionByCategoryAndStatus(
+        category: selectedCategory!.toUpperCase().replaceAll(" ", "_"),
+        status: "WAITING",
       );
-    });
+
+      if (auctionData == null || auctionData['id'] == null) {
+        throw Exception('Failed to fetch auction');
+      }
+
+      final auctionId = auctionData['id'];
+
+      final userData = await api.getCurrentUser();
+      if (userData == null) {
+        throw Exception('Failed to fetch auction1');
+      }
+
+      final userid = userData?['id'];
+
+      final postJson = {
+        "title": titleController.text,
+        "description": descriptionPoints.join(", "),
+        "startPrice": double.parse(startPriceController.text),
+        "category": selectedCategory!.toUpperCase().replaceAll(" ", "_"),
+        "bidStep": double.parse(bidStepController.text),
+        "status": "WAITING",
+        "user": {"id": userid}, // عدّل الـ ID لاحقاً حسب المستخدم الفعلي
+        "auction": {"id": auctionId},
+      };
+      print("${postJson}");
+
+      final imageFiles = images.map((xfile) => File(xfile.path)).toList();
+
+      await api.uploadPostWithImages(
+        postJson: postJson,
+        imageFiles: imageFiles,
+      );
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text("تم النشر"),
+                content: const Text("تم رفع المنشور بنجاح"),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      resetForm();
+                    },
+                    child: const Text("موافق"),
+                  ),
+                ],
+              ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل في رفع المنشور'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isSubmitting = false);
+      }
+    }
   }
 
   bool validateForm() {
@@ -342,11 +375,7 @@ class _AddPostPageState extends State<AddPostPage>
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppColors.primaryLightDark(context),
-        ),
+        Icon(icon, size: 20, color: AppColors.primaryLightDark(context)),
         SizedBox(width: 8),
         Text(
           title,
@@ -381,71 +410,76 @@ class _AddPostPageState extends State<AddPostPage>
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: categories.map((category) {
-                final isSelected = selectedCategory == category['label'];
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedCategory = category['label'];
-                    });
-                    HapticFeedback.lightImpact();
-                  },
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? category['color'].withOpacity(0.9)
-                          : AppColors.getCategoryChipBackground(
-                              context,
-                              category['color'],
-                            ),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: isSelected
-                            ? category['color']
-                            : Colors.transparent,
-                        width: 2,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: category['color'].withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          category['icon'],
-                          color: isSelected
-                              ? Colors.white
-                              : category['color'],
+              children:
+                  categories.map((category) {
+                    final isSelected = selectedCategory == category['label'];
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = category['label'];
+                        });
+                        HapticFeedback.lightImpact();
+                      },
+                      child: AnimatedContainer(
+                        duration: Duration(milliseconds: 200),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          category['label'],
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? Colors.white
-                                : category['color'],
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected
+                                  ? category['color'].withOpacity(0.9)
+                                  : AppColors.getCategoryChipBackground(
+                                    context,
+                                    category['color'],
+                                  ),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color:
+                                isSelected
+                                    ? category['color']
+                                    : Colors.transparent,
+                            width: 2,
                           ),
+                          boxShadow:
+                              isSelected
+                                  ? [
+                                    BoxShadow(
+                                      color: category['color'].withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ]
+                                  : [],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              category['icon'],
+                              color:
+                                  isSelected ? Colors.white : category['color'],
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              category['label'],
+                              style: TextStyle(
+                                fontWeight:
+                                    isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                color:
+                                    isSelected
+                                        ? Colors.white
+                                        : category['color'],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
             ),
           ],
         ),
@@ -548,63 +582,63 @@ class _AddPostPageState extends State<AddPostPage>
           decoration: BoxDecoration(
             color: AppColors.inputFieldBackground(context),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: AppColors.divider(context),
-            ),
+            border: Border.all(color: AppColors.divider(context)),
           ),
-          child: descriptionPoints.isEmpty
-              ? Center(
-                  child: Text(
-                    "no_description".tr(),
-                    style: TextStyle(
-                      color: AppColors.textSecondary(context),
-                      fontStyle: FontStyle.italic,
+          child:
+              descriptionPoints.isEmpty
+                  ? Center(
+                    child: Text(
+                      "no_description".tr(),
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
-                  ),
-                )
-              : ListView.separated(
-                  controller: _descriptionScrollController,
-                  padding: EdgeInsets.all(8),
-                  itemCount: descriptionPoints.length,
-                  separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    color: AppColors.divider(context),
-                  ),
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: AppColors.primaryLightDark(context),
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              descriptionPoints[index],
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppColors.textPrimary(context),
+                  )
+                  : ListView.separated(
+                    controller: _descriptionScrollController,
+                    padding: EdgeInsets.all(8),
+                    itemCount: descriptionPoints.length,
+                    separatorBuilder:
+                        (context, index) => Divider(
+                          height: 1,
+                          color: AppColors.divider(context),
+                        ),
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: AppColors.primaryLightDark(context),
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                descriptionPoints[index],
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.textPrimary(context),
+                                ),
                               ),
                             ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.delete_outline,
-                              size: 18,
-                              color: AppColors.error(context),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: AppColors.error(context),
+                              ),
+                              onPressed: () => removeDescriptionPoint(index),
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
                             ),
-                            onPressed: () => removeDescriptionPoint(index),
-                            padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -764,143 +798,147 @@ class _AddPostPageState extends State<AddPostPage>
         children: [
           images.isEmpty
               ? GestureDetector(
-                  onTap: pickImages,
-                  child: Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: AppColors.imageUploadBackground(context),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.divider(context),
-                        style: BorderStyle.solid,
-                      ),
+                onTap: pickImages,
+                child: Container(
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: AppColors.imageUploadBackground(context),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.divider(context),
+                      style: BorderStyle.solid,
                     ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add_photo_alternate,
-                            size: 48,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate,
+                          size: 48,
+                          color: AppColors.textSecondary(context),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "tap_add_images".tr(),
+                          style: TextStyle(
                             color: AppColors.textSecondary(context),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            "tap_add_images".tr(),
-                            style: TextStyle(
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+              : Container(
+                height: 200,
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: screenWidth > 600 ? 5 : 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount:
+                      images.length < 5 ? images.length + 1 : images.length,
+                  itemBuilder: (context, index) {
+                    if (index == images.length && images.length < 5) {
+                      return GestureDetector(
+                        onTap: pickImages,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.imageUploadBackground(context),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.divider(context),
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.add_photo_alternate,
+                              size: 32,
                               color: AppColors.textSecondary(context),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              : Container(
-                  height: 200,
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: screenWidth > 600 ? 5 : 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: images.length < 5 ? images.length + 1 : images.length,
-                    itemBuilder: (context, index) {
-                      if (index == images.length && images.length < 5) {
-                        return GestureDetector(
-                          onTap: pickImages,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.imageUploadBackground(context),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.divider(context),
-                                style: BorderStyle.solid,
-                              ),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.add_photo_alternate,
-                                size: 32,
-                                color: AppColors.textSecondary(context),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-
-                      return Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.shadowLight(context),
-                                  blurRadius: 5,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(
-                                File(images[index].path),
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => removeImage(index),
-                              child: Container(
-                                padding: EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error(context).withOpacity(0.8),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (index == 0)
-                            Positioned(
-                              bottom: 4,
-                              left: 4,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryLightDark(context)
-                                      .withOpacity(0.8),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  "main_image".tr(),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+                        ),
                       );
-                    },
-                  ),
+                    }
+
+                    return Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadowLight(context),
+                                blurRadius: 5,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(
+                              File(images[index].path),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => removeImage(index),
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.error(
+                                  context,
+                                ).withOpacity(0.8),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (index == 0)
+                          Positioned(
+                            bottom: 4,
+                            left: 4,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLightDark(
+                                  context,
+                                ).withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                "main_image".tr(),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
+              ),
 
           if (images.isNotEmpty)
             Padding(
@@ -944,44 +982,45 @@ class _AddPostPageState extends State<AddPostPage>
             borderRadius: BorderRadius.circular(15),
           ),
         ),
-        child: isSubmitting
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+        child:
+            isSubmitting
+                ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    "creating_auction".tr(),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    SizedBox(width: 12),
+                    Text(
+                      "creating_auction".tr(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                ],
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.gavel, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text(
-                    "post_auction".tr(),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  ],
+                )
+                : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.gavel, color: Colors.white),
+                    SizedBox(width: 12),
+                    Text(
+                      "post_auction".tr(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
       ),
     );
   }
@@ -994,7 +1033,8 @@ class _AddPostPageState extends State<AddPostPage>
     if (titleController.text.isNotEmpty) completedFields++;
     if (descriptionPoints.isNotEmpty) completedFields++;
     if (startPriceController.text.isNotEmpty &&
-        bidStepController.text.isNotEmpty) completedFields++;
+        bidStepController.text.isNotEmpty)
+      completedFields++;
     if (images.isNotEmpty) completedFields++;
 
     return completedFields / totalFields;

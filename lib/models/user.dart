@@ -1,4 +1,4 @@
-import 'package:application/models/post.dart';
+import 'package:application/models/post_2.dart';
 
 class User {
   final int id;
@@ -9,16 +9,16 @@ class User {
   final String phoneNumber;
   final String city;
   final String gender;
-  final DateTime lastLogin;
-  final double rating;
   final String role;
-  final String status;
-  final String paymentToken;
-  final String lahzaCustomerId;
-  final int last4;
-  final String cardBrand;
-  final List<Post> my_posts;
-  final List<Post> winner_posts;
+  late DateTime lastLogin;
+  late double rating;
+  late String status;
+  late String paymentToken;
+  late String lahzaCustomerId;
+  late int last4;
+  late String cardBrand;
+  late List<Post> my_posts;
+  late List<Post> winner_posts;
 
   User({
     required this.id,
@@ -29,15 +29,35 @@ class User {
     required this.phoneNumber,
     required this.city,
     required this.gender,
-    required this.lastLogin,
-    required this.rating,
     required this.role,
-    required this.status,
-    required this.paymentToken,
-    required this.lahzaCustomerId,
-    required this.last4,
-    required this.cardBrand,
-    required this.my_posts,
-    required this.winner_posts,
   });
+  factory User.fromJson(Map<String, dynamic> json) {
+  return User(
+    id: json['id'],
+    firstName: json['firstName'],
+    lastName: json['lastName'],
+    email: json['email'],
+    password: json['password'],
+    phoneNumber: json['phoneNumber'],
+    city: json['city'],
+    gender: json['gender'],
+    role: json['role'],
+  )
+    ..lastLogin = DateTime.parse(json['lastLogin'])
+    ..rating = (json['rating'] ?? 0).toDouble()
+    ..status = json['status'] ?? ''
+    ..paymentToken = json['paymentToken'] ?? ''
+    ..lahzaCustomerId = json['lahzaCustomerId'] ?? ''
+    ..last4 = json['last4'] ?? 0
+    ..cardBrand = json['cardBrand'] ?? ''
+    ..my_posts = (json['my_posts'] as List<dynamic>?)
+            ?.map((item) => Post.fromJson(item))
+            .toList() ??
+        []
+    ..winner_posts = (json['winner_posts'] as List<dynamic>?)
+            ?.map((item) => Post.fromJson(item))
+            .toList() ??
+        [];
+}
+
 }

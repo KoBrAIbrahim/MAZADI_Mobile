@@ -1,25 +1,15 @@
 import 'dart:async';
 
+import 'package:application/API_Service/api.dart';
 import 'package:application/models/action.dart';
 import 'package:application/models/bid.dart';
-import 'package:application/models/post.dart';
+import 'package:application/models/post_2.dart';
 import 'package:application/screens/Main_User_Pages.dart/Auction_pages/detalis_auction.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 class AuctionHomePage extends StatefulWidget {
-  final List<Auction> auction;
-  final List<Post> posts;
-  final List<Bid> bids;
-  final List<String> categories;
-
-  const AuctionHomePage({
-    Key? key,
-    required this.auction,
-    required this.posts,
-    required this.bids,
-    required this.categories,
-  }) : super(key: key);
+  const AuctionHomePage({Key? key}) : super(key: key);
 
   @override
   State<AuctionHomePage> createState() => _AuctionHomePageState();
@@ -33,6 +23,12 @@ class _AuctionHomePageState extends State<AuctionHomePage>
   Timer? _timer;
   Duration _timeLeft = Duration.zero;
   int selectedCategoryIndex = 0;
+  List<Auction> _auctions = [];
+  List<Post> _posts = [];
+  List<Bid> _bids = [];
+  List<String> _categories = [];
+  bool _isLoading = true;
+  String? _error;
 
   final Map<int, String> indexToArabicCategory = {
     0: 'إلكترونيات', // electronics
@@ -46,10 +42,10 @@ class _AuctionHomePageState extends State<AuctionHomePage>
   @override
   void initState() {
     super.initState();
-
+    _fetchData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _tabController = TabController(
-        length: widget.categories.length,
+        length: _categories.length,
         vsync: this,
       );
 
@@ -62,8 +58,31 @@ class _AuctionHomePageState extends State<AuctionHomePage>
       });
 
       _initializeAuctionTimer();
-      auctions = widget.auction;
+      auctions = _auctions;
     });
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final api = ApiService();
+      final auctions = await api.getAllAuctions(); // حسب API
+      final posts = await api.getAllPosts();
+      final bids = await api.getAllBids();
+      final categories = await api.getCategories();
+
+      setState(() {
+        _auctions = auctions ?? [];
+        _posts = posts ?? [];
+        _bids = bids ?? [];
+        _categories = categories ?? [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = "حدث خطأ أثناء تحميل البيانات";
+        _isLoading = false;
+      });
+    }
   }
 
   List<Auction> get filteredAuctions {
@@ -117,6 +136,16 @@ class _AuctionHomePageState extends State<AuctionHomePage>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        body: Center(child: Text(_error!, style: TextStyle(color: Colors.red))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
@@ -148,7 +177,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
             indicatorColor: Theme.of(context).colorScheme.primary,
             indicatorWeight: 3,
             tabs:
-                widget.categories
+                _categories
                     .map((category) => Tab(text: category))
                     .toList(),
           ),
@@ -288,7 +317,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
 
     // Find a live post that matches our category
     final livePosts =
-        widget.auction
+        _auctions
             .expand((auction) => auction.posts)
             .where(
               (post) =>
@@ -300,9 +329,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
     if (livePosts.isEmpty)
       return Container(); // Return empty container if no live posts
     final livePost = livePosts.first;
-    final auction = widget.auction.firstWhere(
+    final auction = _auctions.firstWhere(
       (a) => a.posts.contains(livePost),
-      orElse: () => widget.auction.first,
+      orElse: () => _auctions.first,
     );
 
     return GestureDetector(
@@ -312,9 +341,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           MaterialPageRoute(
             builder:
                 (context) => AuctionDetailPage(
-                  auction: auction,
-                  posts: [livePost],
-                  bids: livePost.bids,
+                 
                 ),
           ),
         );
@@ -483,7 +510,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        "NIS ${livePost.currentBid.toStringAsFixed(2)}",
+                        "NIS ${livePost.currentBid?.toStringAsFixed(2)}",
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -507,7 +534,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
         '';
 
     final filteredPosts =
-        widget.auction
+        _auctions
             .expand((auction) => auction.posts)
             .where(
               (post) => post.category.trim().toLowerCase() == arabicCategory,
@@ -555,9 +582,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           onTap:
               post.isLive == 'IN_PROGRASS'
                   ? () {
-                    final parentAuction = widget.auction.firstWhere(
+                    final parentAuction = _auctions.firstWhere(
                       (a) => a.posts.contains(post),
-                      orElse: () => widget.auction.first,
+                      orElse: () => _auctions.first,
                     );
 
                     Navigator.push(
@@ -565,9 +592,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                       MaterialPageRoute(
                         builder:
                             (context) => AuctionDetailPage(
-                              auction: parentAuction,
-                              posts: [post],
-                              bids: post.bids,
+                             
                             ),
                       ),
                     );

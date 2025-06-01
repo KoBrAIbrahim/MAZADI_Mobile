@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:application/API_Service/api.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/screens/Main_User_Pages.dart/Posts/details_post_page.dart';
 import 'package:application/screens/Main_User_Pages.dart/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../models/post.dart';
+import 'package:hive/hive.dart';
+import '../../models/post_2.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
@@ -49,7 +51,39 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
     _initializeControllers();
     _initializeAnimations();
     _initializeTimer();
+    initializeInterestState();
+    isLiked = widget.post.isFav;
   }
+Future<void> initializeInterestState() async {
+  final api = ApiService();
+
+  final userData = await api.getCurrentUser();
+  
+  final userId = userData?['id'];
+  final tokenBox = await Hive.openBox('authBox');
+  final token = tokenBox.get('access_token');
+
+  if (userId == null || token == null) return;
+
+  try {
+    final interestedPosts = await api.getInterestedPosts(
+      userId: userId,
+      token: token,
+    );
+
+    final interestedPostIds = interestedPosts.map((e) => e.id).toList();
+    final liked = interestedPostIds.contains(widget.post.id);
+
+    if (mounted) {
+      setState(() {
+        isLiked = liked;
+        widget.post.isFav = liked;
+      });
+    }
+  } catch (e) {
+    print('Error loading interest data: $e');
+  }
+}
 
   void _initializeControllers() {
     isLiked = widget.post.isFav;
@@ -169,13 +203,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   void _onLike() {
     HapticFeedback.mediumImpact();
-    setState(() {
-      isLiked = !isLiked;
-      widget.post.isFav = isLiked;
-      isLiked
-          ? _likeAnimationController.forward()
-          : _likeAnimationController.reverse();
-    });
+    _toggleInterest();
   }
 
   void _onImageTap() {
@@ -183,13 +211,11 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.8,
-        child: DetailsPostPage(
-          post: widget.post,
-          pageType: widget.pageType,
-        ),
-      ),
+      builder:
+          (context) => FractionallySizedBox(
+            heightFactor: 0.8,
+            child: DetailsPostPage(pageType: widget.pageType,postId: "${widget.post.id}",),
+          ),
     );
   }
 
@@ -220,7 +246,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
@@ -232,7 +258,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   BoxDecoration _buildCardDecoration() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return BoxDecoration(
       color: AppColors.cardBackground(context),
       borderRadius: BorderRadius.circular(24),
@@ -288,7 +314,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(widget.post.media[index], fit: BoxFit.cover),
+                Image.network(widget.post.media[index], fit: BoxFit.cover),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -327,9 +353,10 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
             height: 8,
             width: currentImageIndex == index ? 24 : 8,
             decoration: BoxDecoration(
-              color: currentImageIndex == index
-                  ? Colors.white
-                  : Colors.white.withOpacity(0.4),
+              color:
+                  currentImageIndex == index
+                      ? Colors.white
+                      : Colors.white.withOpacity(0.4),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -365,7 +392,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
             gradient: LinearGradient(
               colors: [
                 AppColors.primaryLightDark(context),
-                AppColors.secondaryLightDark(context)
+                AppColors.secondaryLightDark(context),
               ],
               begin: _gradientAnimation.value as Alignment,
               end: Alignment(
@@ -402,7 +429,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(String? status) {
     final statusConfig = _getStatusConfig(status);
 
     return Container(
@@ -429,7 +456,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
     );
   }
 
-  Map<String, dynamic> _getStatusConfig(String status) {
+  Map<String, dynamic> _getStatusConfig(String? status) {
     switch (status) {
       case 'WAITING':
         return {
@@ -460,7 +487,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
 
   Widget _buildLikeButton() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Positioned(
       top: 16,
       right: 16,
@@ -470,17 +497,19 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: isLiked
-                ? Colors.red.withOpacity(0.9)
-                : (isDark 
-                    ? Colors.black.withOpacity(0.6) 
-                    : Colors.black.withOpacity(0.4)),
+            color:
+                isLiked
+                    ? Colors.red.withOpacity(0.9)
+                    : (isDark
+                        ? Colors.black.withOpacity(0.6)
+                        : Colors.black.withOpacity(0.4)),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: isLiked
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.black.withOpacity(isDark ? 0.4 : 0.2),
+                color:
+                    isLiked
+                        ? Colors.red.withOpacity(0.3)
+                        : Colors.black.withOpacity(isDark ? 0.4 : 0.2),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -488,18 +517,57 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
           ),
           child: AnimatedBuilder(
             animation: _likeAnimationController,
-            builder: (_, __) => Transform.scale(
-              scale: 1.0 + _likeAnimationController.value * 0.2,
-              child: Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
+            builder:
+                (_, __) => Transform.scale(
+                  scale: 1.0 + _likeAnimationController.value * 0.2,
+                  child: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _toggleInterest() async {
+    final api = ApiService();
+    final userData = await api.getCurrentUser();
+    final userId = userData?['id']; // 🟡 استبدل بـ user ID الحقيقي
+    final postId = widget.post.id;
+    final tokenBox = await Hive.openBox('authBox');
+    final token = tokenBox.get('access_token');
+    if (token == null) {
+      print('Access token is missing or invalid');
+      return;
+    }
+    setState(() {
+      isLiked = !isLiked;
+      widget.post.isFav = isLiked;
+    });
+
+    final success =
+        isLiked
+            ? await api.markPostAsInterested(
+              userId: userId,
+              postId: postId,
+              token: token,
+            )
+            : await api.unmarkPostAsInterested(
+              userId: userId,
+              postId: postId,
+              token: token,
+            );
+
+    if (!success) {
+      // استرجاع الحالة في حال فشل
+      setState(() {
+        isLiked = !isLiked;
+        widget.post.isFav = isLiked;
+      });
+    }
   }
 
   Widget _buildInfoSection() {
@@ -555,7 +623,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
     required Color color,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -608,18 +676,16 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
           _buildStatItem(
             Icons.gavel,
             "stats.bids".tr(),
-            "${widget.post.bid_step}",
+            "${widget.post.bidStep}",
             Colors.amber,
           ),
           _buildVerticalDivider(),
           _buildStatItem(
             Icons.visibility,
             "stats.views".tr(),
-            "32",
+            "${widget.post.viewCount}",
             Colors.blue,
           ),
-          _buildVerticalDivider(),
-          _buildStatItem(Icons.star, "stats.rating".tr(), "4.8", Colors.orange),
         ],
       ),
     );
@@ -632,7 +698,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
     Color color,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Column(
       children: [
         Container(
@@ -647,14 +713,14 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
         Text(
           label,
           style: TextStyle(
-            fontSize: 11, 
-            color: AppColors.textSecondary(context)
+            fontSize: 11,
+            color: AppColors.textSecondary(context),
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            fontWeight: FontWeight.bold, 
+            fontWeight: FontWeight.bold,
             fontSize: 14,
             color: AppColors.textPrimary(context),
           ),
@@ -664,11 +730,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   }
 
   Widget _buildVerticalDivider() {
-    return Container(
-      height: 40, 
-      width: 1, 
-      color: AppColors.divider(context),
-    );
+    return Container(height: 40, width: 1, color: AppColors.divider(context));
   }
 
   Widget _buildTimer() {
@@ -682,17 +744,16 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark 
-              ? [
-                  Colors.red.shade900.withOpacity(0.3),
-                  Colors.orange.shade900.withOpacity(0.3)
-                ]
-              : [Colors.red.shade50, Colors.orange.shade50],
+          colors:
+              isDark
+                  ? [
+                    Colors.red.shade900.withOpacity(0.3),
+                    Colors.orange.shade900.withOpacity(0.3),
+                  ]
+                  : [Colors.red.shade50, Colors.orange.shade50],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.red.withOpacity(isDark ? 0.4 : 0.2)
-        ),
+        border: Border.all(color: Colors.red.withOpacity(isDark ? 0.4 : 0.2)),
       ),
       child: Column(
         children: [
@@ -702,9 +763,9 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
               Row(
                 children: [
                   Icon(
-                    Icons.schedule, 
-                    size: 16, 
-                    color: isDark ? Colors.red.shade400 : Colors.red.shade600
+                    Icons.schedule,
+                    size: 16,
+                    color: isDark ? Colors.red.shade400 : Colors.red.shade600,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -723,8 +784,8 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                   context.locale.languageCode,
                 ).format(_targetDate),
                 style: TextStyle(
-                  fontSize: 12, 
-                  color: AppColors.textSecondary(context)
+                  fontSize: 12,
+                  color: AppColors.textSecondary(context),
                 ),
               ),
             ],
@@ -746,7 +807,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
               value: _getTimerProgress(),
               backgroundColor: AppColors.divider(context),
               valueColor: AlwaysStoppedAnimation<Color>(
-                isDark ? Colors.red.shade400 : Colors.red.shade600
+                isDark ? Colors.red.shade400 : Colors.red.shade600,
               ),
               minHeight: 6,
             ),
@@ -759,7 +820,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   Widget _buildFinalPrice() {
     return _buildInfoCard(
       "post.final_price".tr(),
-      "${widget.post.currentBid} ${"common.currency".tr()}",
+      "${widget.post.finalPrice} ${"common.currency".tr()}",
       icon: Icons.attach_money,
       color: AppColors.primaryLightDark(context),
     );

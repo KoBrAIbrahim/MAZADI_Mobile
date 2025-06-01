@@ -1,29 +1,30 @@
+import 'package:application/API_Service/api.dart';
 import 'package:application/constants/app_colors.dart';
+import 'package:application/models/post_2.dart';
 import 'package:application/screens/Main_User_Pages.dart/Auction_pages/main_page_auction.dart';
 import 'package:application/screens/Main_User_Pages.dart/dashboard.dart/dashboard_page.dart';
 import 'package:application/widgets/Header/header_build.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:application/models/post.dart';
 import 'package:application/widgets/main_page/add_post_bar.dart';
 import 'package:application/widgets/main_page/category_carousel.dart';
 import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:application/widgets/main_page/search_bar.dart';
 import 'package:application/widgets/post/post_card.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:hive/hive.dart';
 
-enum PageType { main, interested, myPosts, myWinners }
+enum PageType { main, interested, myPosts, myWinners, posts }
 
 class HomePage extends StatefulWidget {
-  final List<Post> posts;
+  final List<Post>? initialPosts;
   final PageType pageType;
   final ScrollController? scrollController;
-
-  const HomePage({
+  HomePage({
     super.key,
-    required this.posts,
     this.pageType = PageType.main,
     this.scrollController,
+    this.initialPosts,
   });
 
   @override
@@ -40,14 +41,118 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentPage = 1;
   final int _pageSize = 2;
+  List<Post> _posts = [];
+  String? _selectedSortKey;
+  String? _selectedCategoryKey;
+  String? _searchQuery;
 
+  bool _isLoading = true;
+  String? _error;
   void onTap(int index) {
     setState(() => currentIndex = index);
+  }
+
+  Future<void> fetchPosts() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final api = ApiService();
+
+      if (widget.pageType == PageType.interested) {
+        // 📌 جلب بيانات المستخدم
+        final user = await api.getCurrentUser();
+        if (user == null || user['id'] == null) {
+          throw Exception('فشل في جلب بيانات المستخدم');
+        }
+
+        final authBox = await Hive.openBox('authBox');
+        final token = authBox.get('access_token');
+        final userId = user['id'];
+
+        final posts = await api.getInterestedPosts(
+          userId: userId,
+          token: token,
+          category: _selectedCategoryKey,
+          page: _currentPage,
+          size: _pageSize,
+        );
+
+        setState(() {
+          _posts = posts;
+          _isLoading = false;
+        });
+      } else if (widget.pageType == PageType.main) {
+        // 📌 الحالة العادية
+        final posts = await api.getAllPosts(
+          sortKey: _selectedSortKey,
+          category: _selectedCategoryKey,
+          searchQuery: _searchQuery,
+        );
+
+        setState(() {
+          _posts = posts ?? [];
+          _isLoading = false;
+        });
+      } else if (widget.pageType == PageType.myPosts) {
+        final user = await api.getCurrentUser();
+        if (user == null || user['id'] == null) {
+          throw Exception('فشل في جلب بيانات المستخدم');
+        }
+        final userId = user['id'];
+
+        final posts = await api.getUserPosts(
+          userId: userId,
+          category: _selectedCategoryKey,
+          page: _currentPage,
+          size: _pageSize,
+        );
+
+        setState(() {
+          _posts = posts;
+          _isLoading = false;
+        });
+      } else if (widget.pageType == PageType.myWinners) {
+        final user = await api.getCurrentUser();
+        if (user == null || user['id'] == null) {
+          throw Exception('فشل في جلب بيانات المستخدم');
+        }
+        final userId = user['id'];
+        final authBox = await Hive.openBox('authBox');
+        final token = authBox.get('access_token');
+        final posts = await api.getUserWonPosts(
+          userId: userId,
+          token: token,
+          category: _selectedCategoryKey,
+          page: _currentPage,
+          size: _pageSize,
+        );
+
+        setState(() {
+          _posts = posts;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ fetchPosts error: $e');
+      setState(() {
+        _error = 'حدث خطأ أثناء تحميل البيانات';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialPosts != null) {
+      _posts = widget.initialPosts!;
+      _isLoading = false;
+    } else {
+      fetchPosts();
+    }
     switch (widget.pageType) {
       case PageType.main:
         currentIndex = 0;
@@ -60,6 +165,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         break;
       case PageType.myWinners:
         break;
+      case PageType.posts:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
 
     _scrollController = widget.scrollController ?? ScrollController();
@@ -125,11 +233,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final colorScheme = theme.colorScheme;
     bool isRTL = context.locale.languageCode == 'ar';
 
-    List<Post> displayedPosts = widget.posts;
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(child: Text(_error!));
+    }
+
+    if (_posts == null) {
+      return const Center(child: Text("No data loaded."));
+    }
+
+    List<Post> displayedPosts = _posts;
     if (widget.pageType != PageType.main) {
       final totalPages = (displayedPosts.length / _pageSize).ceil();
       final startIndex = (_currentPage - 1) * _pageSize;
-      final endIndex = (_currentPage * _pageSize).clamp(0, displayedPosts.length);
+      final endIndex = (_currentPage * _pageSize).clamp(
+        0,
+        displayedPosts.length,
+      );
       displayedPosts = displayedPosts.sublist(startIndex, endIndex);
     }
 
@@ -143,9 +266,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             Column(
               children: [
                 widget.pageType == PageType.main
-                    ? const SearchBarWidget()
-                    : buildHeader(context, MediaQuery.of(context).size, MediaQuery.of(context).size.width > 600, _getPageTitle(widget.pageType)),
-                const CategoryCarousel(),
+                    ? SearchBarWidget(
+                      onSearchChanged: (query) {
+                        setState(() {
+                          _searchQuery = query;
+                          fetchPosts(); // ⬅️ تأكد إنها تستدعي الفنكشن
+                        });
+                      },
+                      onSortChanged: (sortKey) {
+                        setState(() {
+                          _selectedSortKey = sortKey;
+                          fetchPosts(); // ⬅️ مهم إنها تتحدث عند الفلترة
+                        });
+                      },
+                    )
+                    : buildHeader(
+                      context,
+                      MediaQuery.of(context).size,
+                      MediaQuery.of(context).size.width > 600,
+                      _getPageTitle(widget.pageType),
+                    ),
+                CategoryCarousel(
+                  onCategoryChanged: (selectedKey) {
+                    setState(() => _selectedCategoryKey = selectedKey);
+                    fetchPosts();
+                  },
+                ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 400),
                   transitionBuilder: (child, animation) {
@@ -155,9 +301,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       child: FadeTransition(opacity: animation, child: child),
                     );
                   },
-                  child: (widget.pageType == PageType.main && _isAddBarVisible)
-                      ? const AddNewPostBar(key: ValueKey('addBar'))
-                      : const SizedBox.shrink(key: ValueKey('empty')),
+                  child:
+                      (widget.pageType == PageType.main && _isAddBarVisible)
+                          ? const AddNewPostBar(key: ValueKey('addBar'))
+                          : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
                 const SizedBox(height: 10),
                 Expanded(
@@ -170,27 +317,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           post: displayedPosts[index],
                           pageType: widget.pageType,
                         );
-                      } else if (widget.pageType != PageType.main && widget.posts.length > _pageSize) {
-                        final totalPages = (widget.posts.length / _pageSize).ceil();
+                      } else if (widget.pageType != PageType.main &&
+                          _posts.length > _pageSize) {
+                        final totalPages = (_posts.length / _pageSize).ceil();
                         List<Widget> pageButtons = [];
 
                         void addButton(int page) {
                           pageButtons.add(
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: GestureDetector(
-                                onTap: () => setState(() => _currentPage = page),
+                                onTap:
+                                    () => setState(() => _currentPage = page),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _currentPage == page ? colorScheme.secondary : colorScheme.surfaceVariant,
+                                    color:
+                                        _currentPage == page
+                                            ? colorScheme.secondary
+                                            : colorScheme.surfaceVariant,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     "$page",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: _currentPage == page ? colorScheme.onSecondary : colorScheme.onSurface,
+                                      color:
+                                          _currentPage == page
+                                              ? colorScheme.onSecondary
+                                              : colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -204,19 +364,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         } else {
                           addButton(1);
                           if (_currentPage > 4) {
-                            pageButtons.add(Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: Text(tr('home.pagination.ellipsis')),
-                            ));
+                            pageButtons.add(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Text(tr('home.pagination.ellipsis')),
+                              ),
+                            );
                           }
-                          int start = (_currentPage - 1).clamp(2, totalPages - 4);
+                          int start = (_currentPage - 1).clamp(
+                            2,
+                            totalPages - 4,
+                          );
                           int end = (_currentPage + 1).clamp(3, totalPages - 1);
                           for (int i = start; i <= end; i++) addButton(i);
                           if (_currentPage < totalPages - 3) {
-                            pageButtons.add(Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: Text(tr('home.pagination.ellipsis')),
-                            ));
+                            pageButtons.add(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Text(tr('home.pagination.ellipsis')),
+                              ),
+                            );
                           }
                           addButton(totalPages);
                         }
@@ -227,28 +398,52 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               GestureDetector(
-                                onTap: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
+                                onTap:
+                                    _currentPage > 1
+                                        ? () => setState(() => _currentPage--)
+                                        : null,
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _currentPage > 1 ? colorScheme.secondary : colorScheme.surfaceVariant,
+                                    color:
+                                        _currentPage > 1
+                                            ? colorScheme.secondary
+                                            : colorScheme.surfaceVariant,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: Icon(Icons.arrow_back_ios_new, size: 16, color: colorScheme.onSecondary),
+                                  child: Icon(
+                                    Icons.arrow_back_ios_new,
+                                    size: 16,
+                                    color: colorScheme.onSecondary,
+                                  ),
                                 ),
                               ),
                               ...pageButtons,
                               GestureDetector(
-                                onTap: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
+                                onTap:
+                                    _currentPage < totalPages
+                                        ? () => setState(() => _currentPage++)
+                                        : null,
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _currentPage < totalPages ? colorScheme.secondary : colorScheme.surfaceVariant,
+                                    color:
+                                        _currentPage < totalPages
+                                            ? colorScheme.secondary
+                                            : colorScheme.surfaceVariant,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: Icon(Icons.arrow_forward_ios, size: 16, color: colorScheme.onSecondary),
+                                  child: Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: colorScheme.onSecondary,
+                                  ),
                                 ),
                               ),
                             ],
@@ -269,16 +464,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: SlideTransition(
                 position: _drawerHintAnimation,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primary.withOpacity(0.12),
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(10), right: Radius.circular(10)),
-                    border: Border.all(color: colorScheme.primary.withOpacity(0.3), width: 0.8),
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(10),
+                      right: Radius.circular(10),
+                    ),
+                    border: Border.all(
+                      color: colorScheme.primary.withOpacity(0.3),
+                      width: 0.8,
+                    ),
                     boxShadow: [
-                      BoxShadow(color: colorScheme.primary.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 1.5)),
+                      BoxShadow(
+                        color: colorScheme.primary.withOpacity(0.15),
+                        blurRadius: 6,
+                        offset: const Offset(0, 1.5),
+                      ),
                     ],
                   ),
-                  child: Icon(Icons.arrow_forward, size: 24, color: colorScheme.primary),
+                  child: Icon(
+                    Icons.arrow_forward,
+                    size: 24,
+                    color: colorScheme.primary,
+                  ),
                 ),
               ),
             ),
@@ -288,7 +500,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 right: 20,
                 child: GestureDetector(
                   onTap: () {
-                    _scrollController.animateTo(0, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+                    _scrollController.animateTo(
+                      0,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut,
+                    );
                     setState(() {
                       _isAddBarVisible = true;
                     });
@@ -300,10 +516,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       color: colorScheme.primary,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 3)),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
                       ],
                     ),
-                    child: Icon(Icons.keyboard_arrow_up, color: colorScheme.onPrimary, size: 24),
+                    child: Icon(
+                      Icons.keyboard_arrow_up,
+                      color: colorScheme.onPrimary,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),

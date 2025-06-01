@@ -1,8 +1,10 @@
+import 'package:application/API_Service/api.dart';
 import 'package:application/constants/app_colors.dart';
 import 'package:application/main.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:hive/hive.dart';
 
 class AuctionDrawer extends StatelessWidget {
   final String selectedItem;
@@ -32,7 +34,7 @@ class AuctionDrawer extends StatelessWidget {
                     isActive: selectedItem == "home",
                     onTap: () {
                       Navigator.pop(context);
-                      context.go('/home_page', extra: posts);
+                      context.go('/home_page');
                     },
                   ),
                   _buildDrawerItem(
@@ -42,14 +44,7 @@ class AuctionDrawer extends StatelessWidget {
                     isActive: selectedItem == "auctions",
                     onTap: () {
                       Navigator.pop(context);
-                      context.go(
-                        '/main_auction',
-                        extra: {
-                          'auction': auctions,
-                          'posts': posts,
-                          'bids': bids,
-                        },
-                      );
+                      context.go('/main_auction');
                     },
                   ),
                   _buildDrawerItem(
@@ -59,7 +54,7 @@ class AuctionDrawer extends StatelessWidget {
                     isActive: selectedItem == "favorites",
                     onTap: () {
                       Navigator.pop(context);
-                      context.go('/interested', extra: posts);
+                      context.go('/interested');
                     },
                   ),
                   _buildDrawerItem(
@@ -69,7 +64,7 @@ class AuctionDrawer extends StatelessWidget {
                     isActive: selectedItem == "my_posts",
                     onTap: () {
                       Navigator.pop(context);
-                      context.go('/my_posts', extra: posts);
+                      context.go('/my_posts');
                     },
                   ),
                   _buildDrawerItem(
@@ -79,7 +74,7 @@ class AuctionDrawer extends StatelessWidget {
                     isActive: selectedItem == "my_auctions",
                     onTap: () {
                       Navigator.pop(context);
-                      context.go('/winners', extra: posts_1);
+                      context.go('/winners');
                     },
                   ),
                   Divider(color: AppColors.divider(context)),
@@ -118,7 +113,19 @@ class AuctionDrawer extends StatelessWidget {
                     context: context,
                     icon: Icons.logout,
                     title: 'drawer_logout'.tr(),
-                    onTap: () {
+                    onTap: () async {
+                      Navigator.pop(context); // إغلاق القائمة الجانبية أولًا
+
+                      // 🔁 استدعاء API تسجيل الخروج
+                      final api = ApiService();
+                      await api.logoutUser();
+
+                      // حذف بيانات تسجيل الدخول من Hive
+                      final authBox = await Hive.openBox('authBox');
+                      await authBox
+                          .clear(); // أو authBox.delete('token') حسب استخدامك
+
+                      // التوجيه لصفحة تسجيل الدخول
                       context.go('/login');
                     },
                   ),
@@ -165,7 +172,7 @@ class AuctionDrawer extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
-                    context.go('/profile', extra: testUser);
+                    context.go('/profile');
                   },
                   child: Text(
                     'drawer_profile'.tr(),

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:hive/hive.dart';
 
 class CategoryCarousel extends StatefulWidget {
-  const CategoryCarousel({super.key});
+  final ValueChanged<String> onCategoryChanged;
+
+  const CategoryCarousel({super.key, required this.onCategoryChanged});
 
   @override
   State<CategoryCarousel> createState() => _CategoryCarouselState();
 }
 
 class _CategoryCarouselState extends State<CategoryCarousel> {
-  List<String> categories = [];
+  late List<Map<String, String>> categories;
 
   final List<String> images = [
     'assets/icons/all.png',
@@ -27,25 +30,37 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
   void initState() {
     super.initState();
     _initializeCategories();
+    _loadSavedCategoryIndex();
   }
 
   void _initializeCategories() {
     categories = [
-      'category_all'.tr(),
-      'category_electronics'.tr(),
-      'category_cars'.tr(),
-      'category_real_estate'.tr(),
-      'category_furniture'.tr(),
-      'category_clothes'.tr(),
-      'category_others'.tr(),
+      {'key': 'ALL', 'label': 'category_all'.tr()},
+      {'key': 'ELECTRONICS', 'label': 'category_electronics'.tr()},
+      {'key': 'CARS', 'label': 'category_cars'.tr()},
+      {'key': 'REAL_ESTATE', 'label': 'category_real_estate'.tr()},
+      {'key': 'FURNITURE', 'label': 'category_furniture'.tr()},
+      {'key': 'CLOTHES', 'label': 'category_clothes'.tr()},
+      {'key': 'OTHERS', 'label': 'category_others'.tr()},
     ];
+  }
+
+  void _loadSavedCategoryIndex() async {
+    final box = Hive.box('settings');
+    final savedIndex = box.get('selected_category_index', defaultValue: 0);
+    setState(() => selectedIndex = savedIndex);
+
+    if (categories.isNotEmpty) {
+      final selectedKey = categories[savedIndex]['key']!;
+      widget.onCategoryChanged(selectedKey);
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     setState(() {
-      _initializeCategories();
+      _initializeCategories(); // لإعادة الترجمة عند تغيير اللغة
     });
   }
 
@@ -65,17 +80,23 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
         separatorBuilder: (context, index) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final isSelected = selectedIndex == index;
+          final label = categories[index]['label']!;
+          final key = categories[index]['key']!;
 
           return Tooltip(
-            message: categories[index],
+            message: label,
             waitDuration: const Duration(milliseconds: 400),
             child: GestureDetector(
-              onTap: () {
+              onTap: () async {
                 setState(() => selectedIndex = index);
+
+                final box = Hive.box('settings');
+                box.put('selected_category_index', index);
+
+                widget.onCategoryChanged(key); // 🔁 أرسل الـ key
               },
               child: Column(
                 children: [
-                  // الخط العلوي
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     height: 5,
@@ -86,7 +107,6 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // الدائرة
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     padding: const EdgeInsets.all(4),
@@ -110,9 +130,8 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // النص
                   Text(
-                    categories[index],
+                    label,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,

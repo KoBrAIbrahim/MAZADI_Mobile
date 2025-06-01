@@ -6,11 +6,13 @@ import 'package:application/constants/app_colors.dart';
 import 'package:application/models/user.dart';
 import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
-  final User user;
+  final String? userId; // Optional userId parameter for API calls
 
-  const ProfilePage({super.key, required this.user});
+  const ProfilePage({super.key, this.userId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -23,6 +25,11 @@ class _ProfilePageState extends State<ProfilePage>
   late AnimationController _drawerHintController;
   late Animation<Offset> _drawerHintAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // API related variables
+  User? user;
+  bool isLoading = true;
+  String? errorMessage;
 
   late AnimationController _animationController;
   late AnimationController _tabAnimationController;
@@ -44,7 +51,11 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _debugUserProperties();
+    _initializeAnimations();
+    _fetchUserData();
+  }
+
+  void _initializeAnimations() {
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -90,15 +101,6 @@ class _ProfilePageState extends State<ProfilePage>
     _tabContentScaleAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _tabContentController, curve: Curves.elasticOut),
     );
-
-    _animationController.forward();
-    _tabContentController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        _profileCardController.forward();
-      }
-    });
-
     _drawerHintController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -110,6 +112,63 @@ class _ProfilePageState extends State<ProfilePage>
     ).animate(
       CurvedAnimation(parent: _drawerHintController, curve: Curves.easeInOut),
     );
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      // Replace with your actual API endpoint
+      final String apiUrl = 'https://your-api-endpoint.com/api/user/${widget.userId ?? 'current'}';
+      
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add your authorization headers here
+          // 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> userData = json.decode(response.body);
+        
+        setState(() {
+          user = User.fromJson(userData);
+          isLoading = false;
+        });
+
+        _debugUserProperties();
+        _startAnimations();
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load user data: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error loading user data: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  void _startAnimations() {
+    _animationController.forward();
+    _tabContentController.forward();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _profileCardController.forward();
+      }
+    });
+  }
+
+  Future<void> _refreshUserData() async {
+    await _fetchUserData();
   }
 
   String _getSafeStringValue(dynamic value, {String fallback = 'N/A'}) {
@@ -129,25 +188,15 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _debugUserProperties() {
+    if (user == null) return;
+    
     print('=== User Properties Debug ===');
-    print(
-      'firstName type: ${widget.user.firstName.runtimeType} - value: ${widget.user.firstName}',
-    );
-    print(
-      'lastName type: ${widget.user.lastName.runtimeType} - value: ${widget.user.lastName}',
-    );
-    print(
-      'email type: ${widget.user.email.runtimeType} - value: ${widget.user.email}',
-    );
-    print(
-      'city type: ${widget.user.city.runtimeType} - value: ${widget.user.city}',
-    );
-    print(
-      'phoneNumber type: ${widget.user.phoneNumber.runtimeType} - value: ${widget.user.phoneNumber}',
-    );
-    print(
-      'gender type: ${widget.user.gender.runtimeType} - value: ${widget.user.gender}',
-    );
+    print('firstName type: ${user!.firstName.runtimeType} - value: ${user!.firstName}');
+    print('lastName type: ${user!.lastName.runtimeType} - value: ${user!.lastName}');
+    print('email type: ${user!.email.runtimeType} - value: ${user!.email}');
+    print('city type: ${user!.city.runtimeType} - value: ${user!.city}');
+    print('phoneNumber type: ${user!.phoneNumber.runtimeType} - value: ${user!.phoneNumber}');
+    print('gender type: ${user!.gender.runtimeType} - value: ${user!.gender}');
     print('==============================');
   }
 
@@ -198,86 +247,173 @@ class _ProfilePageState extends State<ProfilePage>
         child: Stack(
           children: [
             // Main content
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Center(
-                  child: Container(
-                    width: maxWidth,
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          buildHeader(context, screenSize, isTablet, "my_account".tr()),
-                          _buildAdvancedProfileCard(
-                            screenSize,
-                            isTablet,
-                            isDesktop,
+            if (isLoading)
+              _buildLoadingWidget(screenSize, isTablet, isDesktop)
+            else if (errorMessage != null)
+              _buildErrorWidget(screenSize, isTablet, isDesktop)
+            else if (user != null)
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Center(
+                    child: Container(
+                      width: maxWidth,
+                      child: RefreshIndicator(
+                        onRefresh: _refreshUserData,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            children: [
+                              buildHeader(context, screenSize, isTablet, "my_account".tr()),
+                              _buildAdvancedProfileCard(
+                                screenSize,
+                                isTablet,
+                                isDesktop,
+                              ),
+                              _buildAdvancedTabSelector(
+                                screenSize,
+                                isTablet,
+                                isDesktop,
+                              ),
+                              SizedBox(height: isTablet ? 24 : 16),
+                              _buildAdvancedTabContent(
+                                screenSize,
+                                isTablet,
+                                isDesktop,
+                              ),
+                              SizedBox(height: isTablet ? 32 : 24),
+                            ],
                           ),
-                          _buildAdvancedTabSelector(
-                            screenSize,
-                            isTablet,
-                            isDesktop,
-                          ),
-                          SizedBox(height: isTablet ? 24 : 16),
-                          _buildAdvancedTabContent(
-                            screenSize,
-                            isTablet,
-                            isDesktop,
-                          ),
-                          SizedBox(height: isTablet ? 32 : 24),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            Positioned(
-              top: MediaQuery.of(context).size.height / 2 - 16,
-              left: isRTL ? null : 0,
-              right: isRTL ? 0 : null,
-              child: SlideTransition(
-                position: _drawerHintAnimation,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLightDark(context).withOpacity(0.12),
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(10),
-                      right: Radius.circular(10),
+            // Drawer hint - only show when not loading
+            if (!isLoading)
+              Positioned(
+                top: MediaQuery.of(context).size.height / 2 - 16,
+                left: isRTL ? null : 0,
+                right: isRTL ? 0 : null,
+                child: SlideTransition(
+                  position: _drawerHintAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
                     ),
-                    border: Border.all(
-                      color: AppColors.primaryLightDark(context).withOpacity(0.3),
-                      width: 0.8,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryLightDark(context).withOpacity(0.15),
-                        blurRadius: 6,
-                        offset: const Offset(0, 1.5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLightDark(context).withOpacity(0.12),
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(10),
+                        right: Radius.circular(10),
                       ),
-                    ],
-                  ),
-                  child: Icon(
-                    isRTL ? Icons.arrow_forward : Icons.arrow_forward,
-                    size: 14,
-                    color: AppColors.primaryLightDark(context),
+                      border: Border.all(
+                        color: AppColors.primaryLightDark(context).withOpacity(0.3),
+                        width: 0.8,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryLightDark(context).withOpacity(0.15),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isRTL ? Icons.arrow_forward : Icons.arrow_forward,
+                      size: 14,
+                      color: AppColors.primaryLightDark(context),
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
       bottomNavigationBar: LowerBar(
         currentIndex: currentIndexLowerBar,
         onTap: onLowerBarTap,
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget(Size screenSize, bool isTablet, bool isDesktop) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppColors.primaryLightDark(context),
+            ),
+          ),
+          SizedBox(height: isTablet ? 24 : 16),
+          Text(
+            "loading_profile".tr(),
+            style: TextStyle(
+              fontSize: isDesktop ? 18 : isTablet ? 16 : 14,
+              color: AppColors.textSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget(Size screenSize, bool isTablet, bool isDesktop) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(isDesktop ? 40 : isTablet ? 30 : 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: isDesktop ? 80 : isTablet ? 70 : 60,
+              color: AppColors.errorColor(context),
+            ),
+            SizedBox(height: isTablet ? 24 : 16),
+            Text(
+              "error_loading_profile".tr(),
+              style: TextStyle(
+                fontSize: isDesktop ? 24 : isTablet ? 20 : 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: isTablet ? 12 : 8),
+            Text(
+              errorMessage ?? "unknown_error".tr(),
+              style: TextStyle(
+                fontSize: isDesktop ? 16 : isTablet ? 14 : 12,
+                color: AppColors.textSecondary(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: isTablet ? 32 : 24),
+            ElevatedButton.icon(
+              onPressed: _refreshUserData,
+              icon: const Icon(Icons.refresh),
+              label: Text("retry".tr()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryLightDark(context),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? 32 : 24,
+                  vertical: isTablet ? 16 : 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -367,7 +503,7 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                   SizedBox(height: isTablet ? 24 : 20),
                   Text(
-                    "${_getSafeStringValue(widget.user.firstName)} ${_getSafeStringValue(widget.user.lastName)}",
+                    "${_getSafeStringValue(user!.firstName)} ${_getSafeStringValue(user!.lastName)}",
                     style: TextStyle(
                       fontSize: isDesktop
                           ? 28
@@ -383,7 +519,7 @@ class _ProfilePageState extends State<ProfilePage>
 
                   SizedBox(height: isTablet ? 8 : 6),
                   Text(
-                    _getSafeStringValue(widget.user.email),
+                    _getSafeStringValue(user!.email),
                     style: TextStyle(
                       fontSize: isDesktop
                           ? 16
@@ -413,25 +549,25 @@ class _ProfilePageState extends State<ProfilePage>
       {
         'icon': Icons.location_city_outlined,
         'title': 'city'.tr(),
-        'value': _getSafeStringValue(widget.user.city),
+        'value': _getSafeStringValue(user!.city),
         'color': AppColors.infoGridCity(context),
       },
       {
         'icon': Icons.phone_outlined,
         'title': 'phone'.tr(),
-        'value': _getSafeStringValue(widget.user.phoneNumber),
+        'value': _getSafeStringValue(user!.phoneNumber),
         'color': AppColors.infoGridPhone(context),
       },
       {
         'icon': Icons.person_pin_outlined,
         'title': 'gender'.tr(),
-        'value': _getSafeStringValue(widget.user.gender),
+        'value': _getSafeStringValue(user!.gender),
         'color': AppColors.infoGridGender(context),
       },
       {
         'icon': Icons.email_outlined,
         'title': 'email'.tr(),
-        'value': _getSafeStringValue(widget.user.email),
+        'value': _getSafeStringValue(user!.email),
         'color': AppColors.infoGridEmail(context),
       },
     ];
@@ -791,7 +927,7 @@ class _ProfilePageState extends State<ProfilePage>
                       top: Radius.circular(24),
                     ),
                   ),
-                  child: EditProfileSheet(user: widget.user),
+                  child: EditProfileSheet(user: user!),
                 ),
               );
             },
@@ -892,7 +1028,7 @@ class _ProfilePageState extends State<ProfilePage>
                 _buildCreditCard(
                   cardNumber: "**** **** **** 1234",
                   cardHolder:
-                      "${widget.user.firstName} ${widget.user.lastName}",
+                      "${user!.firstName} ${user!.lastName}",
                   expiryDate: "12/26",
                   cardType: "Visa",
                   isDefault: true,
@@ -1096,7 +1232,7 @@ class _ProfilePageState extends State<ProfilePage>
                           ),
                           SizedBox(height: isTablet ? 4 : 2),
                           Text(
-                            "${_getSafeStringValue(widget.user.firstName)} ${_getSafeStringValue(widget.user.lastName)}",
+                            "${_getSafeStringValue(user!.firstName)} ${_getSafeStringValue(user!.lastName)}",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: isDesktop
@@ -1228,7 +1364,7 @@ class _ProfilePageState extends State<ProfilePage>
                       top: Radius.circular(24),
                     ),
                   ),
-                  child: EditProfileSheet(user: widget.user),
+                  child: EditProfileSheet(user: user!),
                 ),
               );
             },
@@ -1408,7 +1544,7 @@ class _ProfilePageState extends State<ProfilePage>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          "${widget.user.firstName} ${widget.user.lastName}",
+                                          "${user!.firstName} ${user!.lastName}",
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,

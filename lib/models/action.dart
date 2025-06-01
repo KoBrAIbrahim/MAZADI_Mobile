@@ -1,4 +1,4 @@
-import 'package:application/models/post.dart';
+import 'package:application/models/post_2.dart';
 
 class Auction {
   final String id;
@@ -22,4 +22,21 @@ class Auction {
     required this.thumbnailUrl,
     required this.currentHighestBid,
   });
+
+  factory Auction.fromJson(Map<String, dynamic> json) {
+  return Auction(
+    id: json['id'] ?? '',
+    title: json['title'] ?? '',
+    category: json['category'] ?? '',
+    endTime: DateTime.parse(json['endTime']),
+    posts: (json['posts'] as List<dynamic>? ?? [])
+        .map((postJson) => Post.fromJson(postJson))
+        .toList(),
+    viewCount: json['viewCount'] ?? 0,
+    participantCount: json['participantCount'] ?? 0,
+    thumbnailUrl: json['thumbnailUrl'] ?? '',
+    currentHighestBid: (json['currentHighestBid'] ?? 0).toDouble(),
+  );
+}
+
 }
