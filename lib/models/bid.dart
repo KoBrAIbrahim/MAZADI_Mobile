@@ -1,5 +1,5 @@
 class Bid {
-  final String userId;
+  final int userId;
   final String userName;
   final double amount;
   final DateTime time;
@@ -12,11 +12,19 @@ class Bid {
   });
 
   factory Bid.fromJson(Map<String, dynamic> json) {
-  return Bid(
-    userId: json['userId'] ?? '',
-    userName: json['userName'] ?? '',
-    amount: (json['amount'] ?? 0).toDouble(),
-    time: DateTime.parse(json['time']),
-  );
-}
+    return Bid(
+      userId: json['id'] ?? '',
+      userName: json['userIdentifier'] ?? '',
+      amount: (json['bidAmount'] ?? 0).toDouble(),
+      time: DateTime.parse(json['timestamp']),
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': userId,
+      'userIdentifier': userName,
+      'bidAmount': amount,
+      'timestamp': time.toIso8601String(),
+    };
+  }
 }

@@ -492,5 +492,13 @@
     "seconds": "s"
   },
   "no_auctions_available": "No auctions available",
-  "no_title": "No Title"
+  "no_title": "No Title",
+  "waiting_for_turn": "Waiting for Turn",
+  "auction_ended": "Auction Ended",
+  "auction_finished": "Auction Finished",
+  "sequential_auction_rules": "Sequential Auction Rules",
+  "rule_sequential_order": "Sequential Order",
+  "rule_auto_progression": "Auto Progression",
+  "auction_status": "Auction Status",
+  "remaining_time": "Remaining Time"
 }

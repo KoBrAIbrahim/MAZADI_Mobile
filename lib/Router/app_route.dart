@@ -69,13 +69,18 @@ GoRouter appRouter(String startRoute) {
       GoRoute(
         path: '/bid_bottom_sheet',
         builder: (context, state) {
-          return BidBottomSheet();
+          return BidBottomSheet(
+            post: state.extra as Post,
+          );
         },
       ),
       GoRoute(
         path: '/auction_detail',
         builder: (context, state) {
-          return AuctionDetailPage();
+          return AuctionDetailPage(
+            post: state.extra as Post,
+            auctionId: state.extra as int ,
+          );
         },
       ),
       GoRoute(

@@ -44,6 +44,8 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   provider: ^6.1.5
+  stomp_dart_client: ^1.0.2
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   flutter_test:
