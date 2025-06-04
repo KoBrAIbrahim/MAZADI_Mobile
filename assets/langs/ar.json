@@ -492,5 +492,13 @@
     "seconds": "ث"
   },
   "no_auctions_available": "لا توجد مزادات متاحة",
-  "no_title": "بدون عنوان"
+  "no_title": "بدون عنوان",
+  "waiting_for_turn": "في انتظار الدور",
+  "auction_ended": "انتهى المزاد",
+  "auction_finished": "انتهى المزاد",
+  "sequential_auction_rules": "قواعد المزاد التسلسلي",
+  "rule_sequential_order": "الترتيب التسلسلي",
+  "rule_auto_progression": "الانتقال التلقائي",
+  "auction_status": "حالة المزاد",
+  "remaining_time": "الوقت المتبقي"
 }

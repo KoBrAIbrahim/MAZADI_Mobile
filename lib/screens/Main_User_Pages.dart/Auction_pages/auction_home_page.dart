@@ -8,6 +8,8 @@ import 'package:application/screens/Main_User_Pages.dart/Auction_pages/detalis_a
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+import '../../../models/AuctionInfo.dart';
+
 class AuctionHomePage extends StatefulWidget {
   const AuctionHomePage({Key? key}) : super(key: key);
 
@@ -18,34 +20,30 @@ class AuctionHomePage extends StatefulWidget {
 class _AuctionHomePageState extends State<AuctionHomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late List<Auction> auctions;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   Timer? _timer;
   Duration _timeLeft = Duration.zero;
   int selectedCategoryIndex = 0;
-  List<Auction> _auctions = [];
-  List<Post> _posts = [];
-  List<Bid> _bids = [];
-  List<String> _categories = [];
+
+  // Updated data structure
+  Map<String, AuctionInfo?> _auctionsByCategory = {};
+  Map<String, List<Post>> _postsByCategory = {};
+  Map<String, PaginationResponse<Post>?> _paginationByCategory = {};
+
   bool _isLoading = true;
   String? _error;
 
-  final Map<int, String> indexToArabicCategory = {
-    0: 'إلكترونيات', // electronics
-    1: 'سيارات', // cars
-    2: 'عقارات', // real estate
-    3: 'أثاث', // furniture
-    4: 'ملابس', // clothing
-    5: 'أخرى', // other
-  };
+  // Updated category mapping
+  late List<Map<String, String>> categoryMappings;
 
   @override
   void initState() {
     super.initState();
+    _initializeCategoryMappings();
     _fetchData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _tabController = TabController(
-        length: _categories.length,
+        length: categoryMappings.length,
         vsync: this,
       );
 
@@ -54,27 +52,67 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           setState(() {
             selectedCategoryIndex = _tabController.index;
           });
+          // Load posts for the selected category if not already loaded
+          _loadPostsForSelectedCategory();
         }
       });
 
       _initializeAuctionTimer();
-      auctions = _auctions;
+    });
+  }
+
+  void _initializeCategoryMappings() {
+    categoryMappings = [
+      {'key': 'ELECTRONICS', 'label': 'category_electronics'.tr()},
+      {'key': 'CARS', 'label': 'category_cars'.tr()},
+      {'key': 'REAL_ESTATE', 'label': 'category_real_estate'.tr()},
+      {'key': 'FURNITURE', 'label': 'category_furniture'.tr()},
+      {'key': 'FASHION', 'label': 'category_fashion'.tr()},
+      {'key': 'OTHER', 'label': 'category_other'.tr()},
+    ];
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    setState(() {
+      _initializeCategoryMappings(); // Re-initialize for language changes
     });
   }
 
   Future<void> _fetchData() async {
     try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
       final api = ApiService();
-      final auctions = await api.getAllAuctions(); // حسب API
-      final posts = await api.getAllPosts();
-      final bids = await api.getAllBids();
-      final categories = await api.getCategories();
+
+      // Load auction info for all categories
+      for (final categoryMapping in categoryMappings) {
+        final categoryKey = categoryMapping['key']!;
+
+        try {
+          final auctionInfo = await api.getAuctionByCategoryAndStatusDefulat(
+            category: categoryKey,
+            status: 'IN_PROGRESS',
+          );
+
+          _auctionsByCategory[categoryKey] = auctionInfo;
+
+          // If auction exists, load first page of posts
+          if (auctionInfo != null) {
+            await _loadPostsForCategory(categoryKey, page: 1);
+          }
+        } catch (e) {
+          print('Error loading category $categoryKey: $e');
+          _auctionsByCategory[categoryKey] = null;
+          _postsByCategory[categoryKey] = [];
+        }
+      }
 
       setState(() {
-        _auctions = auctions ?? [];
-        _posts = posts ?? [];
-        _bids = bids ?? [];
-        _categories = categories ?? [];
         _isLoading = false;
       });
     } catch (e) {
@@ -85,35 +123,100 @@ class _AuctionHomePageState extends State<AuctionHomePage>
     }
   }
 
-  List<Auction> get filteredAuctions {
-    final arabicCategory =
-        indexToArabicCategory[selectedCategoryIndex]?.trim().toLowerCase() ??
-        '';
+  Future<void> _loadPostsForCategory(String categoryKey, {int page = 1}) async {
+    final auctionInfo = _auctionsByCategory[categoryKey];
+    if (auctionInfo == null) return;
 
-    return auctions.where((auction) {
-      final auctionCategory = auction.category.trim().toLowerCase();
-      return auctionCategory == arabicCategory;
-    }).toList();
+    try {
+      final api = ApiService();
+      final postsResponse = await api.getPostsForAuction(
+        auctionId: auctionInfo.id,
+        page: page,
+        size: 10,
+        category: categoryKey,
+      );
+
+      if (postsResponse != null) {
+        setState(() {
+          if (page == 1) {
+            _postsByCategory[categoryKey] = postsResponse.content;
+          } else {
+            _postsByCategory[categoryKey] = [
+              ...(_postsByCategory[categoryKey] ?? []),
+              ...postsResponse.content,
+            ];
+          }
+          _paginationByCategory[categoryKey] = postsResponse;
+        });
+      }
+    } catch (e) {
+      print('Error loading posts for category $categoryKey: $e');
+    }
+  }
+
+  Future<void> _loadPostsForSelectedCategory() async {
+    if (selectedCategoryIndex >= categoryMappings.length) return;
+
+    final selectedCategoryKey = categoryMappings[selectedCategoryIndex]['key']!;
+
+    // Only load if we haven't loaded posts for this category yet
+    if (!_postsByCategory.containsKey(selectedCategoryKey) ||
+        _postsByCategory[selectedCategoryKey]?.isEmpty == true) {
+      await _loadPostsForCategory(selectedCategoryKey);
+    }
+  }
+
+  Future<void> _loadMorePosts() async {
+    if (selectedCategoryIndex >= categoryMappings.length) return;
+
+    final selectedCategoryKey = categoryMappings[selectedCategoryIndex]['key']!;
+    final pagination = _paginationByCategory[selectedCategoryKey];
+
+    if (pagination != null && pagination.number < pagination.totalPages) {
+      await _loadPostsForCategory(selectedCategoryKey, page: pagination.number + 1);
+    }
+  }
+
+  List<Post> get filteredPosts {
+    if (selectedCategoryIndex >= categoryMappings.length) return [];
+
+    final selectedCategoryKey = categoryMappings[selectedCategoryIndex]['key']!;
+    return _postsByCategory[selectedCategoryKey] ?? [];
+  }
+
+  Post? get livePost {
+    final posts = filteredPosts;
+    try {
+      return posts.firstWhere((post) => post.status == 'IN_PROGRESS');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  AuctionInfo? get currentAuction {
+    if (selectedCategoryIndex >= categoryMappings.length) return null;
+
+    final selectedCategoryKey = categoryMappings[selectedCategoryIndex]['key']!;
+    return _auctionsByCategory[selectedCategoryKey];
   }
 
   void _initializeAuctionTimer() {
     final now = DateTime.now();
     final isThursdayToMonday =
         now.weekday >= DateTime.thursday || now.weekday == DateTime.monday;
-    final nextReset =
-        isThursdayToMonday
-            ? DateTime(
-              now.year,
-              now.month,
-              now.weekday == 1 ? now.day : now.day + (8 - now.weekday),
-              18,
-            )
-            : DateTime(
-              now.year,
-              now.month,
-              now.day + (DateTime.thursday - now.weekday),
-              18,
-            );
+    final nextReset = isThursdayToMonday
+        ? DateTime(
+      now.year,
+      now.month,
+      now.weekday == 1 ? now.day : now.day + (8 - now.weekday),
+      18,
+    )
+        : DateTime(
+      now.year,
+      now.month,
+      now.day + (DateTime.thursday - now.weekday),
+      18,
+    );
 
     setState(() => _timeLeft = nextReset.difference(now));
 
@@ -142,13 +245,24 @@ class _AuctionHomePageState extends State<AuctionHomePage>
 
     if (_error != null) {
       return Scaffold(
-        body: Center(child: Text(_error!, style: TextStyle(color: Colors.red))),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_error!, style: TextStyle(color: Colors.red)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchData,
+                child: Text('retry'.tr()),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
       appBar: AppBar(
         title: Text(
           'auctions'.tr(),
@@ -157,7 +271,6 @@ class _AuctionHomePageState extends State<AuctionHomePage>
             color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
-
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
@@ -176,10 +289,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
             unselectedLabelColor: Theme.of(context).unselectedWidgetColor,
             indicatorColor: Theme.of(context).colorScheme.primary,
             indicatorWeight: 3,
-            tabs:
-                _categories
-                    .map((category) => Tab(text: category))
-                    .toList(),
+            tabs: categoryMappings
+                .map((category) => Tab(text: category['label']))
+                .toList(),
           ),
         ),
       ),
@@ -187,36 +299,82 @@ class _AuctionHomePageState extends State<AuctionHomePage>
         children: [
           _buildTimerBar(),
           Expanded(
-            child:
-                filteredAuctions.isEmpty
-                    ? const Center(
-                      child: Text(
-                        "لا توجد مزادات متاحة",
-                        style: TextStyle(fontSize: 16),
+            child: currentAuction == null
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "لا توجد مزادات متاحة في هذه الفئة",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+                : RefreshIndicator(
+              onRefresh: _fetchData,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const SizedBox(height: 12),
+                  if (livePost != null) ...[
+                    _buildFeaturedAuction(),
+                    const SizedBox(height: 24),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "جميع المنشورات",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
                       ),
-                    )
-                    : ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const SizedBox(height: 12),
-                        _buildFeaturedAuction(),
-                        const SizedBox(height: 24),
+                      if (currentAuction != null)
                         Text(
-                          "جميع المنشورات",
+                          "${currentAuction!.postCount} منشور",
                           style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                            fontSize: 14,
+                            color: Colors.grey,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        _buildAuctionGrid(),
-                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildAuctionGrid(),
+                  if (_hasMorePages()) ...[
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _loadMorePosts,
+                        child: Text('load_more'.tr()),
+                      ),
                     ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  bool _hasMorePages() {
+    if (selectedCategoryIndex >= categoryMappings.length) return false;
+
+    final selectedCategoryKey = categoryMappings[selectedCategoryIndex]['key']!;
+    final pagination = _paginationByCategory[selectedCategoryKey];
+
+    return pagination != null && pagination.number < pagination.totalPages;
   }
 
   Widget _buildTimerBar() {
@@ -231,10 +389,9 @@ class _AuctionHomePageState extends State<AuctionHomePage>
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors:
-              Theme.of(context).brightness == Brightness.dark
-                  ? [Colors.deepOrange.shade400, Colors.deepOrange.shade200]
-                  : [Colors.red.shade200, Colors.orange.shade200],
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? [Colors.deepOrange.shade400, Colors.deepOrange.shade200]
+              : [Colors.red.shade200, Colors.orange.shade200],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -311,38 +468,16 @@ class _AuctionHomePageState extends State<AuctionHomePage>
   }
 
   Widget _buildFeaturedAuction() {
-    final arabicCategory =
-        indexToArabicCategory[selectedCategoryIndex]?.trim().toLowerCase() ??
-        '';
-
-    // Find a live post that matches our category
-    final livePosts =
-        _auctions
-            .expand((auction) => auction.posts)
-            .where(
-              (post) =>
-                  post.isLive == 'IN_PROGRASS' &&
-                  post.category.trim().toLowerCase() == arabicCategory,
-            )
-            .toList();
-
-    if (livePosts.isEmpty)
-      return Container(); // Return empty container if no live posts
-    final livePost = livePosts.first;
-    final auction = _auctions.firstWhere(
-      (a) => a.posts.contains(livePost),
-      orElse: () => _auctions.first,
-    );
+    final post = livePost;
+    final auctionInfo = _auctionsByCategory[post?.category];
+    if (post == null) return Container();
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => AuctionDetailPage(
-                 
-                ),
+            builder: (context) => AuctionDetailPage(post: post,auctionId: auctionInfo?.id), // Pass the selected post
           ),
         );
       },
@@ -363,14 +498,13 @@ class _AuctionHomePageState extends State<AuctionHomePage>
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                livePost.media.first,
+              child: Image.network(
+                post.media.isNotEmpty ? post.media.first : 'assets/images/placeholder.png',
                 fit: BoxFit.cover,
-                errorBuilder:
-                    (context, error, stackTrace) => Container(
-                      color: Theme.of(context).cardColor,
-                      child: const Icon(Icons.image_not_supported, size: 50),
-                    ),
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Theme.of(context).cardColor,
+                  child: const Icon(Icons.image_not_supported, size: 50),
+                ),
               ),
             ),
             Container(
@@ -387,10 +521,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
               top: 12,
               right: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.red.shade700,
                   borderRadius: BorderRadius.circular(20),
@@ -426,80 +557,12 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    auction.title,
+                    post.title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.gavel,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'bidders'.tr(
-                                namedArgs: {
-                                  'count': auction.participantCount.toString(),
-                                },
-                              ),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.remove_red_eye,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'views'.tr(
-                                namedArgs: {
-                                  'count': auction.viewCount.toString(),
-                                },
-                              ),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -510,7 +573,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        "NIS ${livePost.currentBid?.toStringAsFixed(2)}",
+                        "NIS ${post.currentBid?.toStringAsFixed(2) ?? post.startPrice.toStringAsFixed(2)}",
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -529,17 +592,20 @@ class _AuctionHomePageState extends State<AuctionHomePage>
   }
 
   Widget _buildAuctionGrid() {
-    final arabicCategory =
-        indexToArabicCategory[selectedCategoryIndex]?.trim().toLowerCase() ??
-        '';
+    final posts = filteredPosts;
 
-    final filteredPosts =
-        _auctions
-            .expand((auction) => auction.posts)
-            .where(
-              (post) => post.category.trim().toLowerCase() == arabicCategory,
-            )
-            .toList();
+    if (posts.isEmpty) {
+      return Container(
+        height: 200,
+        child: Center(
+          child: Text(
+            "لا توجد منشورات متاحة",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -549,57 +615,45 @@ class _AuctionHomePageState extends State<AuctionHomePage>
         mainAxisSpacing: 16,
         childAspectRatio: 0.75,
       ),
-      itemCount: filteredPosts.length,
+      itemCount: posts.length,
       itemBuilder: (context, index) {
-        final post = filteredPosts[index];
+        final post = posts[index];
         Color badgeColor;
         String badgeText;
 
-        switch (post.isLive) {
+        switch (post.status) {
           case 'WAITING':
-            badgeColor =
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade300;
+            badgeColor = Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade300;
             badgeText = 'coming_soon'.tr();
             break;
           case 'COMPLETED':
-            badgeColor =
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.green.shade400
-                    : Colors.green;
+            badgeColor = Theme.of(context).brightness == Brightness.dark
+                ? Colors.green.shade400
+                : Colors.green;
             badgeText = 'sold'.tr();
             break;
           default:
-            badgeColor =
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.red.shade300
-                    : Colors.red.shade700;
+            badgeColor = Theme.of(context).brightness == Brightness.dark
+                ? Colors.red.shade300
+                : Colors.red.shade700;
             badgeText = 'live'.tr();
         }
-
+        final auctionInfo = _auctionsByCategory[post.category];
         return GestureDetector(
-          onTap:
-              post.isLive == 'IN_PROGRASS'
-                  ? () {
-                    final parentAuction = _auctions.firstWhere(
-                      (a) => a.posts.contains(post),
-                      orElse: () => _auctions.first,
-                    );
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => AuctionDetailPage(
-                             
-                            ),
-                      ),
-                    );
-                  }
-                  : null,
+          onTap: post.status == 'IN_PROGRESS'
+              ? () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AuctionDetailPage(post: post,auctionId:auctionInfo?.id), // Pass the selected post
+              ),
+            );
+          }
+              : null,
           child: Opacity(
-            opacity: post.isLive == 'IN_PROGRASS' ? 1.0 : 0.5,
+            opacity: post.status == 'IN_PROGRESS' ? 1.0 : 0.5,
             child: Container(
               height: 200,
               decoration: BoxDecoration(
@@ -617,17 +671,13 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      post.media.first,
+                    child: Image.network(
+                      post.media.isNotEmpty ? post.media.first : 'assets/images/placeholder.png',
                       fit: BoxFit.cover,
-                      errorBuilder:
-                          (context, error, stackTrace) => Container(
-                            color: Colors.grey.shade300,
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              size: 50,
-                            ),
-                          ),
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.image_not_supported, size: 50),
+                      ),
                     ),
                   ),
                   Container(
@@ -673,7 +723,7 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          post.title ?? "بدون عنوان",
+                          post.title,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -690,23 +740,22 @@ class _AuctionHomePageState extends State<AuctionHomePage>
                             },
                           ),
                           style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                             fontSize: 12,
                           ),
                         ),
-                        Text(
-                          'auction_rank'.tr(
-                            namedArgs: {
-                              'rank': post.numberOfOnAuction.toString(),
-                            },
+                        if (post.numberOfOnAuction != null)
+                          Text(
+                            'auction_rank'.tr(
+                              namedArgs: {
+                                'rank': post.numberOfOnAuction.toString(),
+                              },
+                            ),
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                              fontSize: 12,
+                            ),
                           ),
-                          style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
-                            fontSize: 12,
-                          ),
-                        ),
                       ],
                     ),
                   ),

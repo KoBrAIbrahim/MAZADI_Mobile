@@ -9,11 +9,14 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/AuctionInfo.dart';
+import 'AppConfig.dart';
+
 class ApiService {
   static String get baseUrl {
     if (Platform.isAndroid) {
       // Android emulator
-      return "http://192.168.1.4:8080";
+      return "http://192.168.1.20:8080";
     } else if (Platform.isIOS) {
       // iOS simulator can use localhost, but physical device needs IP
       return "http://localhost:8080";
@@ -277,27 +280,24 @@ class ApiService {
   }) async {
     try {
       final authBox = await Hive.openBox('authBox');
-      final token = authBox.get('access_token');
+      String? token = authBox.get('access_token');
+
       final Map<String, String> queryParams = {
         'page': page.toString(),
         'size': size.toString(),
       };
-      print("aaaaa   ${searchQuery}");
+
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        print("asdasdasd");
         queryParams['search'] = searchQuery;
       }
-      print("sssss   ${category}");
 
       if (category != null &&
           category.isNotEmpty &&
           category.toUpperCase() != 'ALL') {
-        print("hihihi");
         queryParams['category'] = category.toUpperCase();
       }
 
-      print("rrrrr   ${sortKey}");
-      // تحويل sortKey لحقول API المعروفة
+      // Convert sortKey to API fields
       switch (sortKey) {
         case 'sort_date':
           queryParams['sortByDate'] = 'true';
@@ -310,22 +310,36 @@ class ApiService {
           break;
       }
 
-      final uri = Uri.parse(
-        '$baseUrl/whitelist/posts',
-      ).replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/whitelist/posts')
+          .replace(queryParameters: queryParams);
 
-      final response = await http.get(
+      http.Response response = await http.get(
         uri,
         headers: {'accept': '*/*', 'Authorization': 'Bearer $token'},
       );
 
+      // Handle 401 (Unauthorized) error - token might be expired
+      if (response.statusCode == 401) {
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          // Get the new token and retry the request
+          token = authBox.get('access_token');
+          response = await http.get(
+            uri,
+            headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+          );
+        } else {
+          throw Exception('Failed to refresh token');
+        }
+      }
+
+      // Process the response (either the initial one or after token refresh)
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         final List<dynamic> content = jsonData['content'];
-        print("${jsonData}   ----- ${response}");
         return content.map((e) => Post.fromJson(e)).toList();
       } else {
-        throw Exception('فشل في تحميل البيانات: ${response.statusCode}');
+        throw Exception('Failed to load data: ${response.statusCode}');
       }
     } catch (e) {
       print('API Error: $e');
@@ -713,7 +727,6 @@ class ApiService {
 
   updatePost(Post post) {}
 
-  placeBid(int id, double bidAmount) {}
 
   // Add to api.dart
   Future<User> updateUserProfile({
@@ -804,5 +817,404 @@ class ApiService {
       rethrow;
     }
   }
+  Future<AuctionInfo?> getAuctionByCategoryAndStatusDefulat({
+    required String category,
+    String status = 'IN_PROGRESS',
+  }) async {
+    try {
+      print('🔍 Getting auction for category: $category, status: $status');
+
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+      if (token == null) {
+        print('❌ No authentication token found');
+        throw Exception('No authentication token found');
+      }
+
+      final url = Uri.parse(
+        '$baseUrl/auction/category-status?category=$category&status=$status',
+      );
+
+      print('📡 Making request to: $url');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': 'application/json',
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('📡 Response status: ${response.statusCode}');
+      print('📡 Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        final auctionInfo = AuctionInfo.fromJson(jsonData);
+        print('✅ Successfully got auction: $auctionInfo');
+        return auctionInfo;
+      } else if (response.statusCode == 404) {
+        print('⚠️ No auction found for category: $category, status: $status');
+        return null;
+      } else {
+        print('❌ Failed to load auction: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load auction: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error getting auction by category and status: $e');
+      return null;
+    }
+  }
+
+  // Get waiting/in-progress posts for auction with pagination
+  Future<PaginationResponse<Post>?> getPostsForAuction({
+    required int auctionId,
+    int page = 1,
+    int size = 10,
+    String? category,
+  }) async {
+    try {
+      print('🔍 Getting posts for auction: $auctionId, page: $page, size: $size, category: $category');
+
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+      if (token == null) {
+        print('❌ No authentication token found');
+        throw Exception('No authentication token found');
+      }
+
+      // Build URL with query parameters
+      final uri = Uri.parse('$baseUrl/posts/auction-waiting/$auctionId/').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          if (category != null) 'category': category,
+        },
+      );
+
+      print('📡 Making request to: $uri');
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'accept': 'application/json',
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('📡 Response status: ${response.statusCode}');
+      print('📡 Response body length: ${response.body.length}');
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        print('📊 Parsing pagination response...');
+
+        final paginationResponse = PaginationResponse.fromJson(
+          jsonData,
+              (json) {
+            print('📄 Parsing post: ${json['id']} - ${json['title']}');
+            return Post.fromJson(json);
+          },
+        );
+
+        print('✅ Successfully got ${paginationResponse.content.length} posts');
+        print('📊 Pagination info: $paginationResponse');
+
+        return paginationResponse;
+      } else if (response.statusCode == 404) {
+        print('⚠️ Auction not found: $auctionId');
+        throw Exception('Auction not found');
+      } else {
+        print('❌ Failed to load posts: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load posts: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error getting posts for auction: $e');
+      return null;
+    }
+  }
+
+  // Combined method to get auction and its posts
+  Future<Map<String, dynamic>?> getAuctionWithPosts({
+    required String category,
+    String status = 'IN_PROGRESS',
+    int page = 1,
+    int size = 10,
+  }) async {
+    try {
+      print('🔄 Getting auction with posts for category: $category');
+
+      // First, get the auction info
+      final auctionInfo = await getAuctionByCategoryAndStatusDefulat(
+        category: category,
+        status: status,
+      );
+
+      if (auctionInfo == null) {
+        print('⚠️ No auction found for category: $category');
+        return null;
+      }
+
+      // Then, get the posts for this auction
+      final postsResponse = await getPostsForAuction(
+        auctionId: auctionInfo.id,
+        page: page,
+        size: size,
+        category: category,
+      );
+
+      final result = {
+        'auctionInfo': auctionInfo,
+        'postsResponse': postsResponse,
+      };
+
+      print('✅ Successfully combined auction and posts data');
+      return result;
+    } catch (e) {
+      print('❌ Error getting auction with posts: $e');
+      return null;
+    }
+  }
+
+  // Helper method to get all posts (with pagination handling)
+  Future<List<Post>> getAllPostsForAuction({
+    required int auctionId,
+    String? category,
+    int pageSize = 20,
+  }) async {
+    List<Post> allPosts = [];
+    int currentPage = 1;
+    bool hasMorePages = true;
+
+    print('🔄 Getting all posts for auction: $auctionId');
+
+    while (hasMorePages) {
+      final response = await getPostsForAuction(
+        auctionId: auctionId,
+        page: currentPage,
+        size: pageSize,
+        category: category,
+      );
+
+      if (response != null && response.content.isNotEmpty) {
+        allPosts.addAll(response.content);
+        hasMorePages = currentPage < response.totalPages;
+        currentPage++;
+        print('📄 Loaded page $currentPage, total posts so far: ${allPosts.length}');
+      } else {
+        hasMorePages = false;
+      }
+    }
+
+    print('✅ Loaded all ${allPosts.length} posts for auction: $auctionId');
+    return allPosts;
+  }
+
+  static Future<Map<String, dynamic>?> startAuctionTimer(int postId) async {
+    try {
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+      final response = await http.post(
+        Uri.parse(AppConfig.postTimerUrl(postId)),
+        headers: {
+          'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Failed to start timer: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error starting timer: $e');
+      return null;
+    }
+  }
+
+  /// Get timer status for a post
+  static Future<Map<String, dynamic>?> getTimerStatus(int postId) async {
+    try {
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+      final response = await http.get(
+        Uri.parse(AppConfig.postTimerStatusUrl(postId)),
+        headers: {
+          'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Failed to get timer status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error getting timer status: $e');
+      return null;
+    }
+  }
+
+  /// Place bid via HTTP (fallback when WebSocket is not available)
+  static Future<bool> placeBid(int postId, double amount) async {
+    try {
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+      final response = await http.put(
+        Uri.parse(AppConfig.placeBidUrl(postId, amount)),
+        headers: {
+          'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+        },
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error placing bid: $e');
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getCurrentActivePost(int auctionId) async {
+    try {
+      print('🔍 Getting current active post for auction: $auctionId');
+
+      // Get authentication token
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+
+      final response = await http.get(
+        Uri.parse(AppConfig.getCurrentActivePostUrl(auctionId)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('📡 getCurrentActivePost response: ${response.statusCode}');
+      print('📡 Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ Successfully got current active post data');
+        return data;
+      } else if (response.statusCode == 401) {
+        print('🔐 Authentication failed, attempting token refresh...');
+
+        // Try to refresh token
+        final apiService = ApiService();
+        final refreshed = await apiService.refreshAccessToken();
+
+        if (refreshed) {
+          // Retry with new token
+          final newToken = authBox.get('access_token');
+          final retryResponse = await http.get(
+            Uri.parse(AppConfig.getCurrentActivePostUrl(auctionId)),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $newToken',
+            },
+          );
+
+          if (retryResponse.statusCode == 200) {
+            return json.decode(retryResponse.body);
+          }
+        }
+
+        print('❌ Authentication failed even after token refresh');
+        return null;
+      } else if (response.statusCode == 403) {
+        print('⚠️ Access forbidden - using fallback approach');
+        return null; // Let the calling code handle fallback
+      } else {
+        print('❌ Failed to get current active post: ${response.statusCode}');
+        print('❌ Error response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error getting current active post: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> startNextPost(int auctionId) async {
+    try {
+      final authBox = await Hive.openBox('authBox');
+      final token = authBox.get('access_token');
+      final response = await http.post(
+        Uri.parse(AppConfig.startNextPostUrl(auctionId)),
+        headers: {
+          'Content-Type': 'application/json',
+           'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Failed to start next post: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error starting next post: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getAuctionStats(int auctionId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auctions/$auctionId/stats'),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add your authentication headers here
+          // 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Failed to get auction stats: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error getting auction stats: $e');
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>?> getPostsByAuctionAndStatus(int auctionId, String status) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/posts/auction/$auctionId/status/$status'),
+        headers: {
+          'Content-Type': 'application/json',
+          // Add your authentication headers here
+          // 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['posts'] ?? [];
+      } else {
+        print('Failed to get posts by status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error getting posts by status: $e');
+      return null;
+    }
+  }
+
 
 }

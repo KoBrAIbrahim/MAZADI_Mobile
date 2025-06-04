@@ -175,7 +175,7 @@ class _DetailsPostPageState extends State<DetailsPostPage>
     if (_post == null) return;
 
     try {
-      await _apiService.placeBid(_post!.id, bidAmount);
+
       setState(() {
         _currentBid = bidAmount.toStringAsFixed(1);
         _showBidForm = false;
