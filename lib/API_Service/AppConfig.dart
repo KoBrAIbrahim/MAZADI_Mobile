@@ -1,8 +1,8 @@
 class AppConfig {
   // Update these URLs to match your server configuration
-  static const String baseUrl = 'http://192.168.1.20:8080'; // Replace with your server IP
+  static const String baseUrl = 'http://192.168.1.10:8080'; // Replace with your server IP
   // WebSocket URL
-  static const String webSocketUrl = 'ws://192.168.1.20:8080/ws'; // Replace with your server IP
+  static const String webSocketUrl = 'ws://192.168.1.10:8080/ws'; // Replace with your server IP
 
   // API endpoints
   static String get postsUrl => '$baseUrl/posts';

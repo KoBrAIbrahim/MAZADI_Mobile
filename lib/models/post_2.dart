@@ -1,4 +1,4 @@
-import 'package:application/models/bid.dart';
+import 'bid.dart';
 
 class Post {
   final int id;
@@ -130,11 +130,43 @@ class Post {
   bool get isWaiting => status == 'WAITING';
   bool get isCompleted => status == 'COMPLETED';
 
+  // Fixed display price getter with proper logic
   String get displayPrice {
-    if (currentBid != null && currentBid! > 0) {
-      return currentBid!.toStringAsFixed(2);
+    final currentPrice = getCurrentPrice();
+    return currentPrice.toStringAsFixed(2);
+  }
+
+  // New method to get the current effective price
+  double getCurrentPrice() {
+    // Priority: finalPrice > currentBid > startPrice
+    if (finalPrice != null && finalPrice! > 0) {
+      return finalPrice!;
+    } else if (currentBid != null && currentBid! > 0) {
+      return currentBid!;
+    } else {
+      return startPrice;
     }
-    return startPrice.toStringAsFixed(2);
+  }
+
+  // Get minimum next bid amount
+  double getMinimumBid() {
+    return getCurrentPrice() + bidStep;
+  }
+
+  // Debug method to print current state
+  void debugPrint() {
+    print('=== POST DEBUG INFO ===');
+    print('ID: $id');
+    print('Title: $title');
+    print('Status: $status');
+    print('Start Price: $startPrice');
+    print('Current Bid: $currentBid');
+    print('Final Price: $finalPrice');
+    print('Current Price (calculated): ${getCurrentPrice()}');
+    print('Minimum Bid: ${getMinimumBid()}');
+    print('Bid Step: $bidStep');
+    print('Bids Count: ${bids.length}');
+    print('========================');
   }
 
   String get statusDisplayText {

@@ -69,8 +69,10 @@ GoRouter appRouter(String startRoute) {
       GoRoute(
         path: '/bid_bottom_sheet',
         builder: (context, state) {
+          final Map<String, dynamic> args = state.extra as Map<String, dynamic>;
           return BidBottomSheet(
-            post: state.extra as Post,
+            post: args['post'] as Post,
+            onBidPlaced: args['onBidPlaced'] as Function(double),
           );
         },
       ),

@@ -12,6 +12,7 @@ import 'package:application/widgets/main_page/lower_bar_pages.dart';
 import 'package:application/widgets/main_page/search_bar.dart';
 import 'package:application/widgets/post/post_card.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hive/hive.dart';
 
 enum PageType { main, interested, myPosts, myWinners, posts }
@@ -137,6 +138,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       }
     } catch (e) {
       print('❌ fetchPosts error: $e');
+      // go tto the login page if the error is unauthorized
+
+        final authBox = await Hive.openBox('authBox');
+        await authBox.clear();
+        context.go("/login");
       setState(() {
         _error = 'حدث خطأ أثناء تحميل البيانات';
         _isLoading = false;
