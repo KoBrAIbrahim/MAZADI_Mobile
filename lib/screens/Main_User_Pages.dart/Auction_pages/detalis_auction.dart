@@ -1,71 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
-
-import 'package:application/API_Service/api.dart';
-import 'package:application/models/action.dart';
-import 'package:application/models/bid.dart';
 import 'package:application/models/post_2.dart';
 import 'package:application/screens/Main_User_Pages.dart/Auction_pages/bid_button_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:hive/hive.dart';
-import 'package:stomp_dart_client/stomp.dart';
-import 'package:stomp_dart_client/stomp_config.dart';
-import 'package:stomp_dart_client/stomp_frame.dart';
-
-// Import your AppColors class
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:application/constants/app_colors.dart';
-import '../../../API_Service/AppConfig.dart';
 
-// WebSocket models
-class BidUpdateDTO {
-  final int postId;
-  final double finalPrice;
-  final String userName;
-  final String timestamp;
-
-  BidUpdateDTO({
-    required this.postId,
-    required this.finalPrice,
-    required this.userName,
-    required this.timestamp,
-  });
-
-  factory BidUpdateDTO.fromJson(Map<String, dynamic> json) {
-    return BidUpdateDTO(
-      postId: json['postId'] ?? 0,
-      finalPrice: (json['finalPrice'] ?? 0.0).toDouble(),
-      userName: json['userName'] ?? '',
-      timestamp: json['timestamp'] ?? '',
-    );
-  }
-}
-
-class TimerNotification {
-  final int postId;
-  final String event;
-  final int remainingSeconds;
-  final String timestamp;
-  final String? message;
-
-  TimerNotification({
-    required this.postId,
-    required this.event,
-    required this.remainingSeconds,
-    required this.timestamp,
-    this.message,
-  });
-
-  factory TimerNotification.fromJson(Map<String, dynamic> json) {
-    return TimerNotification(
-      postId: json['postId'] ?? 0,
-      event: json['event'] ?? '',
-      remainingSeconds: json['remainingSeconds'] ?? 0,
-      timestamp: json['timestamp'] ?? '',
-      message: json['message'],
-    );
-  }
-}
+import '../../../models/AuctionProvider.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final Post post;
@@ -84,844 +26,242 @@ class AuctionDetailPage extends StatefulWidget {
 class _AuctionDetailPageState extends State<AuctionDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  Timer? _timer;
-  Duration _timeLeft = Duration.zero;
-  late Post selectedPost;
   int _selectedImageIndex = 0;
   final PageController _pageController = PageController();
-
-  // Timer and auction status
-  bool _isTimerActive = false;
-  bool _isCurrentPostActive = false; // Is THIS post currently active in the auction
-  int _serverRemainingSeconds = 0;
-  DateTime? _lastTimerUpdate;
-  String _auctionStatus = "WAITING"; // WAITING, ACTIVE, COMPLETED, AUCTION_COMPLETED
-
-  // WebSocket related
-  StompClient? _stompClient;
-  bool _isWebSocketConnected = false;
-  late String _webSocketUrl;
-
-  List<Bid> _bids = [];
-  bool _isLoading = false;
-  String? _error;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    selectedPost = widget.post;
-    _bids = widget.post.bids ?? [];
-
-    print("=== INITIALIZATION ===");
-    print("Initial bids count: ${widget.post.bids?.length ?? 0}");
-    print("Initial final price: ${selectedPost.finalPrice}");
-    print("Initial current bid: ${selectedPost.currentBid}");
-    print("Initial start price: ${selectedPost.startPrice}");
-
-    // WebSocket URL
-    _webSocketUrl = AppConfig.webSocketUrl;
-
-    _initializeWebSocket();
-    _startConnectionMonitoring();
-    _startDebugMonitoring();
-    _checkCurrentActivePost();
-    _startLocalTimer();
-
-    // Print initial state
-    _debugCurrentState();
-  }
-
-
-  void _checkCurrentActivePost() async {
-    // Check if this post is currently the active one in the auction sequence
-    try {
-      print('🔍 Checking current active post for auction ${widget.auctionId}');
-
-      if (widget.auctionId == null) {
-        print('⚠️ No auction ID provided');
-        return;
-      }
-
-      final result = await ApiService.getCurrentActivePost(widget.auctionId!);
-
-      if (result != null && mounted) {
-        print('✅ Got active post result: $result');
-
-        final activePost = result['activePost'];
-        final remainingSeconds = result['remainingSeconds'] ?? 0;
-        final isTimerActive = result['isTimerActive'] ?? false;
-
-        setState(() {
-          _isCurrentPostActive = activePost != null && activePost['id'] == selectedPost.id;
-          _isTimerActive = _isCurrentPostActive && isTimerActive;
-          _serverRemainingSeconds = remainingSeconds;
-
-          // Determine auction status based on post status and timer state
-          if (selectedPost.status == 'COMPLETED') {
-            _auctionStatus = "COMPLETED";
-          } else if (_isCurrentPostActive && _isTimerActive) {
-            _auctionStatus = "ACTIVE";
-            _timeLeft = Duration(seconds: _serverRemainingSeconds);
-            _lastTimerUpdate = DateTime.now();
-          } else if (selectedPost.status == 'IN_PROGRESS') {
-            _auctionStatus = "ACTIVE";
-            _isCurrentPostActive = true;
-          } else {
-            _auctionStatus = "WAITING";
-          }
-        });
-
-        print('📊 Post ${selectedPost.id} analysis:');
-        print('   - Status: $_auctionStatus');
-        print('   - Is current active: $_isCurrentPostActive');
-        print('   - Timer active: $_isTimerActive');
-        print('   - Remaining: $_serverRemainingSeconds seconds');
-        print('   - Post status: ${selectedPost.status}');
-
-      } else {
-        print('⚠️ No result from getCurrentActivePost, using fallback logic');
-        // Fallback: determine status from post data
-        setState(() {
-          if (selectedPost.status == 'COMPLETED') {
-            _auctionStatus = "COMPLETED";
-            _isCurrentPostActive = false;
-            _isTimerActive = false;
-          } else if (selectedPost.status == 'IN_PROGRESS') {
-            _auctionStatus = "ACTIVE";
-            _isCurrentPostActive = true;
-            _isTimerActive = true;
-            _timeLeft = Duration(seconds: 30); // Default to 30 seconds
-            _lastTimerUpdate = DateTime.now();
-          } else {
-            _auctionStatus = "WAITING";
-            _isCurrentPostActive = false;
-            _isTimerActive = false;
-          }
-        });
-      }
-    } catch (e) {
-      print('❌ Error checking current active post: $e');
-
-      // Fallback: Use post status to determine state
-      setState(() {
-        if (selectedPost.status == 'COMPLETED') {
-          _auctionStatus = "COMPLETED";
-          _isCurrentPostActive = false;
-          _isTimerActive = false;
-        } else if (selectedPost.status == 'IN_PROGRESS') {
-          _auctionStatus = "ACTIVE";
-          _isCurrentPostActive = true;
-          _isTimerActive = true;
-          _timeLeft = Duration(seconds: 30);
-          _lastTimerUpdate = DateTime.now();
-        } else {
-          _auctionStatus = "WAITING";
-          _isCurrentPostActive = false;
-          _isTimerActive = false;
-        }
-      });
-
-      print('🔄 Using fallback status: $_auctionStatus');
-    }
-  }
-
-  void _startLocalTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (_isTimerActive && _isCurrentPostActive && _lastTimerUpdate != null) {
-        final elapsed = DateTime.now().difference(_lastTimerUpdate!);
-        final remaining = _serverRemainingSeconds - elapsed.inSeconds;
-
-        if (remaining <= 0) {
-          setState(() {
-            _timeLeft = Duration.zero;
-            _isTimerActive = false;
-            _auctionStatus = "COMPLETED";
-          });
-          timer.cancel();
-        } else {
-          setState(() {
-            _timeLeft = Duration(seconds: remaining);
-          });
-        }
-      }
-    });
-  }
-
-  void _initializeWebSocket() async {
-    try {
-      // Get the authentication token
-      final authBox = await Hive.openBox('authBox');
-      final token = authBox.get('access_token');
-
-      print('🔐 Initializing WebSocket with token: ${token != null ? "Present" : "Missing"}');
-
-      _stompClient = StompClient(
-        config: StompConfig(
-          url: _webSocketUrl,
-          onConnect: _onWebSocketConnected,
-          onWebSocketError: (dynamic error) {
-            print('❌ WebSocket Error: $error');
-            setState(() => _isWebSocketConnected = false);
-
-            // Try to reconnect after a delay
-            Future.delayed(Duration(seconds: 5), () {
-              if (mounted && !_isWebSocketConnected) {
-                print('🔄 Attempting to reconnect WebSocket...');
-                _initializeWebSocket();
-              }
-            });
-          },
-          onStompError: (StompFrame frame) {
-            print('❌ Stomp Error: ${frame.body}');
-            setState(() => _isWebSocketConnected = false);
-          },
-          onDisconnect: (StompFrame frame) {
-            print('🔌 WebSocket Disconnected: ${frame.body}');
-            setState(() => _isWebSocketConnected = false);
-          },
-          // Add authentication headers
-          webSocketConnectHeaders: token != null ? {
-            'Authorization': 'Bearer $token',
-          } : {},
-          stompConnectHeaders: token != null ? {
-            'Authorization': 'Bearer $token',
-          } : {},
-          heartbeatIncoming: Duration(seconds: 20),
-          heartbeatOutgoing: Duration(seconds: 20),
-          // Add reconnection configuration
-          connectionTimeout: Duration(seconds: 10),
-        ),
-      );
-
-      print('🚀 Activating WebSocket connection...');
-      _stompClient!.activate();
-    } catch (e) {
-      print('❌ Failed to initialize WebSocket: $e');
-      setState(() => _isWebSocketConnected = false);
-    }
-  }
-
-  void _onWebSocketConnected(StompFrame frame) {
-    print('✅ WebSocket Connected Successfully');
-    print('📡 Connection frame: ${frame.body}');
-    setState(() => _isWebSocketConnected = true);
-
-    try {
-      // Subscribe to bid updates for this specific post
-      print('📡 Subscribing to bid updates for post ${selectedPost.id}');
-      _stompClient!.subscribe(
-        destination: '/topic/auction/${selectedPost.id}/bids',
-        callback: _onBidUpdateEnhanced,
-      );
-
-      // Subscribe to timer updates for this specific post
-      print('📡 Subscribing to timer updates for post ${selectedPost.id}');
-      _stompClient!.subscribe(
-        destination: '/topic/auction/${selectedPost.id}/timer',
-        callback: _onTimerUpdate,
-      );
-
-      // Subscribe to auction-wide updates
-      if (widget.auctionId != null) {
-        print('📡 Subscribing to auction updates for auction ${widget.auctionId}');
-        _stompClient!.subscribe(
-          destination: '/topic/auction/${widget.auctionId}',
-          callback: _onAuctionUpdate,
-        );
-      }
-
-      // Subscribe to tracker updates
-      print('📡 Subscribing to tracker updates for post ${selectedPost.id}');
-      _stompClient!.subscribe(
-        destination: '/topic/auction/${selectedPost.id}/trackers',
-        callback: _onTrackerUpdate,
-      );
-
-      print('✅ All WebSocket subscriptions completed');
-
-      // Send a connect message to the server (optional)
-      _stompClient!.send(
-        destination: '/app/auction/connect',
-        body: json.encode({
-          'postId': selectedPost.id,
-          'auctionId': widget.auctionId,
-          'timestamp': DateTime.now().toIso8601String(),
-        }),
-      );
-
-    } catch (e) {
-      print('❌ Error setting up WebSocket subscriptions: $e');
-    }
-  }
-  void _debugCurrentState() {
-    final currentPrice = selectedPost.finalPrice ?? selectedPost.startPrice;
-
-    print('🔍 === ENHANCED STATE DEBUG ===');
-    print('Post ID: ${selectedPost.id}');
-    print('Post Status: ${selectedPost.status}');
-    print('Post Final Price: ${selectedPost.finalPrice}');
-    print('Post Current Bid: ${selectedPost.currentBid}');
-    print('Post Start Price: ${selectedPost.startPrice}');
-    print('Computed Current Price: $currentPrice');
-    print('Auction Status: $_auctionStatus');
-    print('Is Current Post Active: $_isCurrentPostActive');
-    print('Is Timer Active: $_isTimerActive');
-    print('Time Left: ${_timeLeft.inSeconds} seconds');
-    print('WebSocket Connected: $_isWebSocketConnected');
-    print('Bids Count: ${_bids.length}');
-    print('Server Remaining Seconds: $_serverRemainingSeconds');
-    print('Last Timer Update: $_lastTimerUpdate');
-    print('Can Bid: ${_canUserBid()}');
-    print('=== END ENHANCED DEBUG ===');
-  }
-  bool _canUserBid() {
-    return _auctionStatus == "ACTIVE" &&
-        _isCurrentPostActive &&
-        _isTimerActive &&
-        _isWebSocketConnected;
-  }
-
-// Call this method periodically to monitor state
-  void _startDebugMonitoring() {
-    Timer.periodic(Duration(seconds: 5), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      _debugCurrentState();
-    });
-  }
-
-// Test method to simulate a bid (for testing WebSocket)
-  void _testBid() {
-    if (_stompClient != null && _isWebSocketConnected) {
-      final testBidData = {
-        'postId': selectedPost.id,
-        'amount': (selectedPost.finalPrice ?? selectedPost.startPrice) + selectedPost.bidStep,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-
-      print('🧪 Testing bid with data: $testBidData');
-
-      _stompClient!.send(
-        destination: '/app/auction/${selectedPost.id}/bid',
-        body: json.encode(testBidData),
-      );
-    }
-  }
-
-// Add a floating action button for testing (remove in production)
-  Widget _buildDebugFAB() {
-    return FloatingActionButton(
-      onPressed: () {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Debug Actions'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(
-                  onPressed: _debugCurrentState,
-                  child: Text('Print Debug Info'),
-                ),
-                ElevatedButton(
-                  onPressed: _testBid,
-                  child: Text('Test Bid'),
-                ),
-                ElevatedButton(
-                  onPressed: _checkCurrentActivePost,
-                  child: Text('Refresh Post Status'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _auctionStatus = "ACTIVE";
-                      _isCurrentPostActive = true;
-                      _isTimerActive = true;
-                      _timeLeft = Duration(seconds: 30);
-                      _lastTimerUpdate = DateTime.now();
-                    });
-                  },
-                  child: Text('Force Active State'),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Close'),
-              ),
-            ],
-          ),
-        );
-      },
-      child: Icon(Icons.bug_report),
-    );
-  }
-  void _updatePostState({
-    double? newFinalPrice,
-    String? newStatus,
-    bool? isActive,
-    bool? timerActive,
-    Duration? timeLeft,
-  }) {
-    setState(() {
-      if (newFinalPrice != null) {
-        selectedPost.finalPrice = newFinalPrice;
-        selectedPost.currentBid = newFinalPrice; // Ensure backward compatibility
-        print('💰 Updated post price to: $newFinalPrice');
-      }
-
-      if (newStatus != null) {
-        selectedPost.status = newStatus;
-        print('📊 Updated post status to: $newStatus');
-      }
-
-      if (isActive != null) {
-        _isCurrentPostActive = isActive;
-        print('🎯 Updated post active state to: $isActive');
-      }
-
-      if (timerActive != null) {
-        _isTimerActive = timerActive;
-        print('⏰ Updated timer active state to: $timerActive');
-      }
-
-      if (timeLeft != null) {
-        _timeLeft = timeLeft;
-        _lastTimerUpdate = DateTime.now();
-        print('⏱️ Updated time left to: ${timeLeft.inSeconds} seconds');
-      }
-    });
-  }
-
-// Enhanced bid update handler with state validation
-  void _onBidUpdateEnhanced(StompFrame frame) {
-    try {
-      if (frame.body == null) return;
-
-      print('📨 Received bid update: ${frame.body}');
-      final data = json.decode(frame.body!);
-      final bidUpdate = BidUpdateDTO.fromJson(data);
-
-      print('💰 Processing bid update:');
-      print('   - Post ID: ${bidUpdate.postId} (Expected: ${selectedPost.id})');
-      print('   - New Final Price: ${bidUpdate.finalPrice}');
-      print('   - Current Final Price: ${selectedPost.finalPrice}');
-      print('   - User: ${bidUpdate.userName}');
-
-      if (bidUpdate.postId == selectedPost.id) {
-        // Store old price for comparison
-        final oldPrice = selectedPost.finalPrice ?? selectedPost.currentBid ?? selectedPost.startPrice;
-
-        // Update state using the enhanced method
-        _updatePostState(newFinalPrice: bidUpdate.finalPrice);
-
-        // Create and add new bid
-        final newBid = Bid(
-          userId: DateTime.now().millisecondsSinceEpoch,
-          amount: bidUpdate.finalPrice,
-          userName: bidUpdate.userName,
-          time: DateTime.now(),
-        );
-
-        setState(() {
-          _bids.insert(0, newBid);
-        });
-
-        print('✅ Bid update processed:');
-        print('   - Old Price: ${oldPrice.toStringAsFixed(2)}');
-        print('   - New Price: ${bidUpdate.finalPrice.toStringAsFixed(2)}');
-        print('   - Total Bids: ${_bids.length}');
-
-        // Force UI rebuild
-        Future.microtask(() {
-          if (mounted) {
-            setState(() {});
-          }
-        });
-
-        // Show notification
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '💰 New bid: ${bidUpdate.finalPrice.toStringAsFixed(2)} NIS by ${bidUpdate.userName}',
-              ),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        print('ℹ️ Bid update for different post (${bidUpdate.postId}), ignoring');
-      }
-    } catch (e) {
-      print('❌ Error processing bid update: $e');
-    }
-  }
-
-  void _onTimerUpdate(StompFrame frame) {
-    try {
-      if (frame.body == null) return;
-
-      print('📨 Received timer update: ${frame.body}');
-      final data = json.decode(frame.body!);
-      final timerNotification = TimerNotification.fromJson(data);
-
-      print('🔍 Timer event: ${timerNotification.event} for post ${timerNotification.postId}');
-      print('🔍 Current post ID: ${selectedPost.id}');
-      print('🔍 Current status: $_auctionStatus');
-
-      // Handle events for this specific post
-      if (timerNotification.postId == selectedPost.id) {
-        setState(() {
-          switch (timerNotification.event) {
-            case 'POST_STARTED':
-              print('🎯 POST_STARTED event for current post');
-              _isCurrentPostActive = true;
-              _isTimerActive = true;
-              _auctionStatus = "ACTIVE";
-              _serverRemainingSeconds = timerNotification.remainingSeconds;
-              _timeLeft = Duration(seconds: _serverRemainingSeconds);
-              _lastTimerUpdate = DateTime.now();
-              selectedPost.status = 'IN_PROGRESS';
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('🎯 Now auctioning: ${selectedPost.title}'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              }
-              break;
-
-            case 'TIMER_STARTED':
-              print('⏰ TIMER_STARTED event for current post');
-              _isCurrentPostActive = true;
-              _isTimerActive = true;
-              _auctionStatus = "ACTIVE";
-              _serverRemainingSeconds = timerNotification.remainingSeconds;
-              _timeLeft = Duration(seconds: _serverRemainingSeconds);
-              _lastTimerUpdate = DateTime.now();
-              selectedPost.status = 'IN_PROGRESS';
-              break;
-
-            case 'TIMER_RESTARTED':
-              print('🔄 TIMER_RESTARTED event for current post');
-              if (_isCurrentPostActive) {
-                _isTimerActive = true;
-                _serverRemainingSeconds = timerNotification.remainingSeconds;
-                _timeLeft = Duration(seconds: _serverRemainingSeconds);
-                _lastTimerUpdate = DateTime.now();
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('⏰ Timer restarted to 30 seconds due to new bid!'),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              }
-              break;
-
-            case 'TIMER_STOPPED':
-              print('⏹️ TIMER_STOPPED event for current post');
-              if (_isCurrentPostActive) {
-                _isTimerActive = false;
-                _timeLeft = Duration.zero;
-              }
-              break;
-
-            case 'TIMER_EXPIRED':
-              print('🔥 TIMER_EXPIRED event for current post');
-              _isTimerActive = false;
-              _isCurrentPostActive = false;
-              _timeLeft = Duration.zero;
-              _auctionStatus = "COMPLETED";
-              selectedPost.status = 'COMPLETED';
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('🏁 Auction ended for this item! Moving to next item...'),
-                    backgroundColor: Colors.red,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              }
-              break;
-          }
-        });
-      }
-
-      // Handle auction-wide events
-      if (timerNotification.event == 'AUCTION_SEQUENCE_COMPLETED') {
-        print('🎊 AUCTION_SEQUENCE_COMPLETED event');
-        setState(() {
-          _auctionStatus = "AUCTION_COMPLETED";
-          _isTimerActive = false;
-          _isCurrentPostActive = false;
-          _timeLeft = Duration.zero;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🎊 Entire auction completed! ${timerNotification.message ?? ""}'),
-              backgroundColor: Colors.purple,
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
-      }
-
-      // Show message if provided
-      if (timerNotification.message != null && mounted) {
-        print('💬 Timer message: ${timerNotification.message}');
-      }
-
-      print('🔍 Updated status: $_auctionStatus, timer active: $_isTimerActive, post active: $_isCurrentPostActive');
-
-    } catch (e) {
-      print('❌ Error processing timer update: $e');
-    }
-  }
-
-  void _onAuctionUpdate(StompFrame frame) {
-    print('Received auction update: ${frame.body}');
-    // Handle auction-wide updates here
-  }
-
-  void _onTrackerUpdate(StompFrame frame) {
-    print('Received tracker update: ${frame.body}');
-    // Handle bid tracker updates here
-  }
-
-  void _sendBid(double amount) {
-    print('💰 Attempting to send bid: $amount for post ${selectedPost.id}');
-
-    if (!_isCurrentPostActive) {
-      print('❌ Post ${selectedPost.id} is not currently active for bidding');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('This item is not currently active for bidding'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    if (_stompClient != null && _isWebSocketConnected) {
-      try {
-        final bidData = {
-          'postId': selectedPost.id,
-          'amount': amount,
-          'timestamp': DateTime.now().toIso8601String(),
-        };
-
-        print('📤 Sending bid via WebSocket: $bidData');
-
-        _stompClient!.send(
-          destination: '/app/auction/${selectedPost.id}/bid',
-          body: json.encode(bidData),
-        );
-
-        print('✅ Bid sent via WebSocket successfully');
-
-        // Show immediate feedback
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bid of ${amount.toStringAsFixed(2)} NIS sent!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
-          ),
-        );
-
-      } catch (e) {
-        print('❌ Error sending bid via WebSocket: $e');
-        _sendBidHttp(amount);
-      }
-    } else {
-      print('❌ WebSocket not connected (connected: $_isWebSocketConnected), using HTTP API fallback');
-      _sendBidHttp(amount);
-    }
-  }
-  void _startConnectionMonitoring() {
-    Timer.periodic(Duration(seconds: 10), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (!_isWebSocketConnected && _stompClient != null) {
-        print('🔍 WebSocket disconnected, attempting to reconnect...');
-        _initializeWebSocket();
-      }
-    });
-  }
-  void _sendBidHttp(double amount) async {
-    try {
-      bool success = await ApiService.placeBid(selectedPost.id, amount);
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bid placed successfully via HTTP!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to place bid'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error placing bid via HTTP: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error placing bid: $e'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _tabController.dispose();
     _pageController.dispose();
-
-    // Clean up WebSocket connection
-    if (_stompClient != null) {
-      _stompClient!.deactivate();
-    }
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Text(
-            _error ?? 'خطأ غير معروف',
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBackground(context),
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                selectedPost.title,
-                style: TextStyle(color: AppColors.textPrimary(context)),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            _buildStatusIndicators(),
-          ],
-        ),
-        backgroundColor: AppColors.cardBackground(context),
-        iconTheme: IconThemeData(color: AppColors.textPrimary(context)),
-        elevation: 0,
+    return ChangeNotifierProvider(
+      create: (context) => AuctionProvider(
+        selectedPost: widget.post,
+        auctionId: widget.auctionId ?? 0,
       ),
-      body: Column(
-        children: [
-          _buildAuctionStatusBar(),
-          Expanded(
-            child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildImageCarousel(),
-                          const SizedBox(height: 16),
-                          _buildCategoryBadge(),
-                          const SizedBox(height: 12),
-                          _buildTitle(),
-                          const SizedBox(height: 12),
-                          _buildStats(),
-                          const SizedBox(height: 8),
-                          _buildBidInfo(),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SliverPersistentHeader(
-                    delegate: _SliverAppBarDelegate(
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: AppColors.primaryLightDark(context),
-                        unselectedLabelColor: AppColors.textSecondary(context),
-                        indicatorColor: AppColors.primaryLightDark(context),
-                        dividerColor: AppColors.divider(context),
-                        tabs: [
-                          Tab(text: "bids".tr()),
-                          Tab(text: "details".tr()),
-                          Tab(text: "rules".tr()),
-                        ],
-                      ),
-                    ),
-                    pinned: true,
-                  ),
-                ];
-              },
-              body: TabBarView(
-                controller: _tabController,
+      child: Consumer<AuctionProvider>(
+        builder: (context, provider, child) {
+          return Scaffold(
+            backgroundColor: AppColors.scaffoldBackground(context),
+            appBar: AppBar(
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back),
+                onPressed: () {
+                  context.go("/home_screen"); // عدّل هذا المسار حسب مسار صفحة المزاد عندك
+                },
+              ),
+              title: Row(
                 children: [
-                  _buildBidsTab(),
-                  _buildDetailsTab(),
-                  _buildRulesTab(),
+                  Expanded(
+                    child: Text(
+                      provider.selectedPost.title,
+                      style: TextStyle(color: AppColors.textPrimary(context)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatusIndicators(provider),
                 ],
               ),
+              backgroundColor: AppColors.cardBackground(context),
+              iconTheme: IconThemeData(color: AppColors.textPrimary(context)),
+              elevation: 0,
             ),
-          ),
-        ],
+            body: Column(
+              children: [
+                _buildAuctionStatusBar(provider),
+                Expanded(
+                  child: NestedScrollView(
+                    headerSliverBuilder: (context, innerBoxIsScrolled) {
+                      return [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildImageCarousel(provider),
+                                const SizedBox(height: 16),
+                                _buildCategoryBadge(provider),
+                                const SizedBox(height: 12),
+                                _buildTitle(provider),
+                                const SizedBox(height: 12),
+                                _buildStats(provider),
+                                const SizedBox(height: 8),
+                                _buildBidInfo(provider),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SliverPersistentHeader(
+                          delegate: _SliverAppBarDelegate(
+                            TabBar(
+                              controller: _tabController,
+                              labelColor: AppColors.primaryLightDark(context),
+                              unselectedLabelColor: AppColors.textSecondary(context),
+                              indicatorColor: AppColors.primaryLightDark(context),
+                              dividerColor: AppColors.divider(context),
+                              tabs: [
+                                Tab(text: "bids".tr()),
+                                Tab(text: "details".tr()),
+                                Tab(text: "rules".tr()),
+                              ],
+                            ),
+                          ),
+                          pinned: true,
+                        ),
+                      ];
+                    },
+                    body: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildBidsTab(provider),
+                        _buildDetailsTab(provider),
+                        _buildRulesTab(provider),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            bottomNavigationBar: _buildBottomBar(provider),
+          );
+        },
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
-  Widget _buildStatusIndicators() {
+  Widget _buildNextBidButtonWithTimer(AuctionProvider provider) {
+    if (provider.isTransitioning) {
+      // Show loading state during transition
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 4,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+          ),
+          Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue,
+            ),
+            child: Icon(Icons.refresh, color: Colors.white, size: 20),
+          ),
+        ],
+      );
+    }
+
+    if (provider.isInDelayPhase) {
+      // Show delay countdown on the button
+      final progress = provider.delaySecondsRemaining / 10.0;
+
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              value: 1 - progress, // Reverse progress (filling up as delay counts down)
+              strokeWidth: 4,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+            ),
+          ),
+          Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.orange,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.schedule, color: Colors.white, size: 16),
+                Text(
+                  '${provider.delaySecondsRemaining}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Original timer button for active auctions
+    final totalSeconds = 30.0;
+    final secondsLeft = provider.timeLeft.inSeconds.clamp(0, 30);
+    final progress = 1 - (secondsLeft / totalSeconds);
+    final nextBidAmount = provider.nextMinimumBid;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 60,
+          height: 60,
+          child: CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 4,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(
+                provider.auctionStatus == "ACTIVE" ? Colors.green : Colors.grey
+            ),
+          ),
+        ),
+        InkWell(
+          onTap: _canUserBid(provider) ? () {
+            print('🔍 Bid button pressed with amount: $nextBidAmount');
+            provider.sendBid(nextBidAmount);
+            _showBidSuccess('Bid of ${nextBidAmount.toStringAsFixed(2)} NIS sent!');
+          } : null,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _canUserBid(provider) ? Colors.green : Colors.grey,
+            ),
+            child: Icon(
+                Icons.gavel,
+                color: Colors.white,
+                size: 24
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusIndicators(AuctionProvider provider) {
     return Row(
       children: [
         // WebSocket connection indicator
@@ -929,7 +269,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: _isWebSocketConnected ? Colors.green : Colors.red,
+            color: provider.isWebSocketConnected ? Colors.green : Colors.red,
             shape: BoxShape.circle,
           ),
         ),
@@ -939,7 +279,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: _getStatusColor(),
+            color: _getStatusColor(provider.auctionStatus),
             shape: BoxShape.circle,
           ),
         ),
@@ -947,14 +287,16 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     );
   }
 
-  Color _getStatusColor() {
-    switch (_auctionStatus) {
+  Color _getStatusColor(String status) {
+    switch (status) {
       case "ACTIVE":
         return Colors.green;
       case "WAITING":
         return Colors.orange;
       case "COMPLETED":
         return Colors.red;
+      case "DELAY": // NEW
+        return Colors.orange;
       case "AUCTION_COMPLETED":
         return Colors.purple;
       default:
@@ -962,282 +304,92 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     }
   }
 
-  Widget _buildAuctionStatusBar() {
-    final totalDuration = const Duration(seconds: 30);
-    final progress = _isTimerActive && _timeLeft.inSeconds > 0
-        ? 1 - (_timeLeft.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0)
-        : (_auctionStatus == "COMPLETED" ? 1.0 : 0.0);
-
-    final Color barColor = _getStatusColor();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 360;
-    final isMediumScreen = screenWidth >= 360 && screenWidth < 768;
-    final isLargeScreen = screenWidth >= 768;
+  Widget _buildAuctionStatusBar(AuctionProvider provider) {
+    final progress = _getProgressValue(provider);
 
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final h = twoDigits(_timeLeft.inHours % 24);
-    final m = twoDigits(_timeLeft.inMinutes % 60);
-    final s = twoDigits(_timeLeft.inSeconds % 60);
-
-    String statusText = _getStatusText();
-    String timerText = _isTimerActive ? "$h:$m:$s" : statusText;
+    final h = twoDigits(provider.timeLeft.inHours % 24);
+    final m = twoDigits(provider.timeLeft.inMinutes % 60);
+    final s = twoDigits(provider.timeLeft.inSeconds % 60);
 
     return Container(
       color: AppColors.cardBackground(context),
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 12 : 16,
-        vertical: isSmallScreen ? 6 : 8,
-      ),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row with timer and status indicators
           Row(
             children: [
-              // Timer text with responsive sizing
               Expanded(
                 child: Text(
-                  _isTimerActive
-                      ? "time_left".tr(namedArgs: {'count': timerText})
-                      : timerText,
+                  _getTimerText(provider, h, m, s),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: _getResponsiveFontSize(screenWidth, isTimerActive: _isTimerActive),
-                    color: barColor,
+                    fontSize: 16,
+                    color: _getStatusColor(provider.auctionStatus),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: isSmallScreen ? 2 : 1,
                 ),
               ),
-              const SizedBox(width: 8),
-              // Status indicators with responsive layout
-              _buildResponsiveStatusIndicators(screenWidth),
-            ],
-          ),
-          SizedBox(height: isSmallScreen ? 4 : 6),
-          // Progress bar with responsive styling
-          _buildResponsiveProgressBar(progress, barColor, screenWidth),
-          // Additional status info for completed auctions
-          if (_auctionStatus == "COMPLETED" || _auctionStatus == "AUCTION_COMPLETED")
-            _buildCompletedStatusInfo(screenWidth),
-        ],
-      ),
-    );
-  }
-  double _getResponsiveFontSize(double screenWidth, {bool isTimerActive = false}) {
-    if (screenWidth < 360) {
-      return isTimerActive ? 12 : 11;
-    } else if (screenWidth < 768) {
-      return isTimerActive ? 14 : 13;
-    } else {
-      return isTimerActive ? 16 : 15;
-    }
-  }
-
-  Widget _buildResponsiveStatusIndicators(double screenWidth) {
-    final isSmallScreen = screenWidth < 360;
-
-    if (isSmallScreen) {
-      // Compact layout for small screens
-      return Column(
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _isWebSocketConnected ? Icons.wifi : Icons.wifi_off,
-                size: 14,
-                color: _isWebSocketConnected ? Colors.green : Colors.red,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                _isWebSocketConnected ? 'Live' : 'Off',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: _isWebSocketConnected ? Colors.green : Colors.red,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    provider.isWebSocketConnected ? Icons.wifi : Icons.wifi_off,
+                    size: 16,
+                    color: provider.isWebSocketConnected ? Colors.green : Colors.red,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    provider.isWebSocketConnected ? 'Live' : 'Offline',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: provider.isWebSocketConnected ? Colors.green : Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 2),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _getStatusIcon(),
-                size: 14,
-                color: _getStatusColor(),
-              ),
-              const SizedBox(width: 2),
-              Text(
-                _getStatusLabel(),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: _getStatusColor(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    } else {
-      // Normal layout for medium and large screens
-      return Row(
-        children: [
-          Icon(
-            _isWebSocketConnected ? Icons.wifi : Icons.wifi_off,
-            size: screenWidth < 768 ? 16 : 18,
-            color: _isWebSocketConnected ? Colors.green : Colors.red,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _isWebSocketConnected ? 'Live' : 'Offline',
-            style: TextStyle(
-              fontSize: screenWidth < 768 ? 12 : 14,
-              color: _isWebSocketConnected ? Colors.green : Colors.red,
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: provider.isTransitioning
+                ? LinearProgressIndicator(
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              minHeight: 8,
+            )
+                : LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(_getStatusColor(provider.auctionStatus)),
+              minHeight: 8,
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(
-            _getStatusIcon(),
-            size: screenWidth < 768 ? 16 : 18,
-            color: _getStatusColor(),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _getStatusLabel(),
-            style: TextStyle(
-              fontSize: screenWidth < 768 ? 12 : 14,
-              color: _getStatusColor(),
-            ),
-          ),
-        ],
-      );
-    }
-  }
-
-  Widget _buildResponsiveProgressBar(double progress, Color barColor, double screenWidth) {
-    final isSmallScreen = screenWidth < 360;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(isSmallScreen ? 8 : 12),
-      child: Stack(
-        children: [
-          // Background bar
-          Container(
-            height: isSmallScreen ? 8 : 10,
-            width: double.infinity,
-            color: AppColors.progressBackground(context),
-          ),
-          // Progress bar with animation
-          AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            height: isSmallScreen ? 8 : 10,
-            width: MediaQuery.of(context).size.width * progress,
-            decoration: BoxDecoration(
-              gradient: _getProgressGradient(barColor),
-              borderRadius: BorderRadius.circular(isSmallScreen ? 8 : 12),
-              boxShadow: _isTimerActive ? [
-                BoxShadow(
-                  color: barColor.withOpacity(0.3),
-                  blurRadius: 4,
-                  offset: Offset(0, 1),
-                ),
-              ] : null,
-            ),
-          ),
-          // Pulse effect for active timer
-          if (_isTimerActive && _timeLeft.inSeconds <= 10)
-            AnimatedOpacity(
-              opacity: (_timeLeft.inSeconds % 2 == 0) ? 0.7 : 1.0,
-              duration: Duration(milliseconds: 500),
-              child: Container(
-                height: isSmallScreen ? 8 : 10,
-                width: MediaQuery.of(context).size.width * progress,
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(isSmallScreen ? 8 : 12),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-  LinearGradient _getProgressGradient(Color baseColor) {
-    switch (_auctionStatus) {
-      case "ACTIVE":
-        return LinearGradient(
-          colors: [baseColor, baseColor.withOpacity(0.7)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        );
-      case "COMPLETED":
-        return LinearGradient(
-          colors: [Colors.green, Colors.green.withOpacity(0.7)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        );
-      case "AUCTION_COMPLETED":
-        return LinearGradient(
-          colors: [Colors.purple, Colors.purple.withOpacity(0.7)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        );
-      default:
-        return LinearGradient(
-          colors: [baseColor, baseColor.withOpacity(0.7)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        );
-    }
-  }
-
-  Widget _buildCompletedStatusInfo(double screenWidth) {
-    final isSmallScreen = screenWidth < 360;
-
-    return Padding(
-      padding: EdgeInsets.only(top: isSmallScreen ? 4 : 6),
-      child: Row(
-        children: [
-          Icon(
-            _auctionStatus == "AUCTION_COMPLETED" ? Icons.celebration : Icons.check_circle,
-            size: isSmallScreen ? 14 : 16,
-            color: _auctionStatus == "AUCTION_COMPLETED" ? Colors.purple : Colors.green,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              _auctionStatus == "AUCTION_COMPLETED"
-                  ? "All auction items completed!"
-                  : "This item auction completed",
-              style: TextStyle(
-                fontSize: isSmallScreen ? 10 : 12,
-                color: AppColors.textSecondary(context),
-                fontStyle: FontStyle.italic,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (_bids.isNotEmpty) ...[
-            const SizedBox(width: 8),
+          // NEW: Show delay message if in delay phase
+          if (provider.isInDelayPhase && provider.delayStatusText.isNotEmpty) ...[
+            const SizedBox(height: 8),
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 6 : 8,
-                vertical: isSmallScreen ? 2 : 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
               ),
-              child: Text(
-                "${_bids.length} bids",
-                style: TextStyle(
-                  fontSize: isSmallScreen ? 9 : 11,
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                children: [
+                  Icon(Icons.schedule, size: 16, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      provider.delayStatusText,
+                      style: TextStyle(
+                        color: Colors.orange.shade700,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1245,44 +397,44 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
       ),
     );
   }
-  IconData _getStatusIcon() {
-    switch (_auctionStatus) {
-      case "ACTIVE":
-        return Icons.timer;
-      case "WAITING":
-        return Icons.hourglass_empty;
-      case "COMPLETED":
-        return Icons.check_circle;
-      case "AUCTION_COMPLETED":
-        return Icons.celebration;
-      default:
-        return Icons.timer_off;
+
+  // Helper method to get timer text based on current state
+  String _getTimerText(AuctionProvider provider, String h, String m, String s) {
+    if (provider.isTransitioning) {
+      return "Loading next auction...";
+    } else if (provider.isInDelayPhase) {
+      return "Auction completed! Next item starting in ${provider.delaySecondsRemaining}s";
+    } else if (provider.isTimerActive) {
+      return "Time left: $h:$m:$s";
+    } else {
+      return _getStatusText(provider.auctionStatus);
     }
   }
 
-  String _getStatusLabel() {
-    switch (_auctionStatus) {
-      case "ACTIVE":
-        return "Active";
-      case "WAITING":
-        return "Waiting";
-      case "COMPLETED":
-        return "Completed";
-      case "AUCTION_COMPLETED":
-        return "Auction Done";
-      default:
-        return "Unknown";
+  // Helper method to get progress value
+  double _getProgressValue(AuctionProvider provider) {
+    if (provider.isTransitioning) {
+      return 0.5; // Show indeterminate progress
+    } else if (provider.isInDelayPhase) {
+      // Show reverse progress for delay countdown (starts at 1, goes to 0)
+      return provider.delaySecondsRemaining > 0 ? (provider.delaySecondsRemaining / 10.0) : 0.0;
+    } else if (provider.isTimerActive && provider.timeLeft.inSeconds > 0) {
+      return 1 - (provider.timeLeft.inSeconds / 30.0).clamp(0.0, 1.0);
+    } else {
+      return (provider.auctionStatus == "COMPLETED" ? 1.0 : 0.0);
     }
   }
 
-  String _getStatusText() {
-    switch (_auctionStatus) {
+  String _getStatusText(String status) {
+    switch (status) {
       case "ACTIVE":
         return "Currently active - place your bids!";
       case "WAITING":
         return "Waiting for your turn in the auction";
       case "COMPLETED":
         return "Auction completed for this item";
+      case "DELAY": // NEW
+        return "Preparing next auction...";
       case "AUCTION_COMPLETED":
         return "Entire auction sequence completed";
       default:
@@ -1290,8 +442,10 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     }
   }
 
-  Widget _buildImageCarousel() {
-    final images = selectedPost.media.isNotEmpty ? selectedPost.media : ['assets/images/placeholder.png'];
+  Widget _buildImageCarousel(AuctionProvider provider) {
+    final images = provider.selectedPost.media.isNotEmpty
+        ? provider.selectedPost.media
+        : ['assets/images/placeholder.png'];
 
     return Container(
       height: 200,
@@ -1317,20 +471,17 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             },
             itemBuilder: (context, index) {
               final image = images[index];
-              return GestureDetector(
-                onTap: () {},
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: AppColors.surfaceVariant(context),
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 50,
-                        color: AppColors.textSecondary(context),
-                      ),
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: AppColors.surfaceVariant(context),
+                    child: Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: AppColors.textSecondary(context),
                     ),
                   ),
                 ),
@@ -1338,7 +489,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             },
           ),
           if (images.length > 1) _buildImageIndicators(images.length),
-          _buildLiveBadge(),
+          _buildLiveBadge(provider),
         ],
       ),
     );
@@ -1359,8 +510,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color:
-              _selectedImageIndex == index
+              color: _selectedImageIndex == index
                   ? AppColors.primaryLightDark(context)
                   : Colors.white.withOpacity(0.5),
             ),
@@ -1370,14 +520,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     );
   }
 
-  Widget _buildLiveBadge() {
+  Widget _buildLiveBadge(AuctionProvider provider) {
     return Positioned(
       top: 12,
       right: 12,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: _getStatusColor(),
+          color: _getStatusColor(provider.auctionStatus),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -1392,7 +542,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             ),
             const SizedBox(width: 6),
             Text(
-              _getStatusLabel(),
+              _getStatusLabel(provider.auctionStatus),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -1405,30 +555,43 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     );
   }
 
-  Widget _buildCategoryBadge() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.lightBackground(context),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            selectedPost.category,
-            style: TextStyle(
-              color: AppColors.primaryLightDark(context),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case "ACTIVE":
+        return "Active";
+      case "WAITING":
+        return "Waiting";
+      case "COMPLETED":
+        return "Completed";
+      case "DELAY":
+        return "Delay";
+      case "AUCTION_COMPLETED":
+        return "Done";
+      default:
+        return "Unknown";
+    }
+  }
+
+  Widget _buildCategoryBadge(AuctionProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.lightBackground(context),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        provider.selectedPost.category,
+        style: TextStyle(
+          color: AppColors.primaryLightDark(context),
+          fontWeight: FontWeight.bold,
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildTitle() {
+  Widget _buildTitle(AuctionProvider provider) {
     return Text(
-      selectedPost.title,
+      provider.selectedPost.title,
       style: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.bold,
@@ -1437,123 +600,232 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     );
   }
 
-  Widget _buildStats() {
+  Widget _buildStats(AuctionProvider provider) {
+    // Get unique bidders count (in case same user bids multiple times)
+    final uniqueBidders = provider.bids.map((bid) => bid.userName).toSet().length;
+
     return Row(
       children: [
         Icon(Icons.gavel, size: 16, color: AppColors.textSecondary(context)),
         const SizedBox(width: 4),
         Text(
-          'bidders'.tr(
-            namedArgs: {'count': (_bids.length).toString()},
-          ),
+          '$uniqueBidders bidders',
           style: TextStyle(color: AppColors.textSecondary(context)),
         ),
         const SizedBox(width: 16),
-        Icon(
-          Icons.remove_red_eye,
-          size: 16,
-          color: AppColors.textSecondary(context),
-        ),
+        Icon(Icons.remove_red_eye, size: 16, color: AppColors.textSecondary(context)),
         const SizedBox(width: 4),
         Text(
-          "views".tr(namedArgs: {'count': selectedPost.viewCount.toString()}),
+          '${provider.selectedPost.viewCount} views',
           style: TextStyle(color: AppColors.textSecondary(context)),
         ),
+        const SizedBox(width: 16),
+        // Add real-time bid count indicator
+        if (provider.bids.isNotEmpty) ...[
+          Icon(Icons.trending_up, size: 16, color: Colors.green),
+          const SizedBox(width: 4),
+          Text(
+            '${provider.bids.length} bids',
+            style: TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildBidInfo() {
-    // Always get the most current price
-    final currentPrice = selectedPost.finalPrice ?? selectedPost.currentBid ?? selectedPost.startPrice;
-    final nextBidPrice = currentPrice + selectedPost.bidStep;
+  Widget _buildBidInfo(AuctionProvider provider) {
+    final hasActiveBids = provider.bids.isNotEmpty;
+    final currentPrice = provider.currentPrice;
+    final nextBid = provider.nextMinimumBid;
 
-    print('🔍 Building bid info with currentPrice: $currentPrice');
+    print('🔍 BuildBidInfo - Has bids: $hasActiveBids, Current price: $currentPrice, Next bid: $nextBid');
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground(context),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight(context),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+        // Main bid info cards
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: hasActiveBids ? Border.all(
+                    color: AppColors.primaryLightDark(context).withOpacity(0.3),
+                    width: 1,
+                  ) : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadowLight(context),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          hasActiveBids ? "Highest Bid" : "Starting Price",
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (hasActiveBids) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.trending_up,
+                            size: 12,
+                            color: Colors.green,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    AnimatedDefaultTextStyle(
+                      duration: Duration(milliseconds: 300),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: hasActiveBids
+                            ? AppColors.primaryLightDark(context)
+                            : AppColors.textSecondary(context),
+                      ),
+                      child: Text(
+                        "NIS ${currentPrice.toStringAsFixed(2)}",
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
+            const SizedBox(width: 12),
+            // Replace the "Next Bid" container with the circular button
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  _buildNextBidButtonWithTimer(provider),
+                  const SizedBox(height: 8),
+                  if (provider.isInDelayPhase) ...[
+                    Text(
+                      "Next Auction",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    Text(
+                      "${provider.delaySecondsRemaining}s",
+                      style: TextStyle(
+                        color: Colors.orange.shade700,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      "NIS ${nextBid.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.primaryLightDark(context),
+                      ),
+                    ),
+                    Text(
+                      "Next Bid",
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        // Real-time bid activity indicator or delay status
+        if (provider.isInDelayPhase) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  "highest_bid".tr(),
-                  style: TextStyle(
-                    color: AppColors.textSecondary(context),
-                    fontSize: 12,
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(width: 6),
                 Text(
-                  "NIS ${currentPrice.toStringAsFixed(2)}",
+                  "Auction completed • Next item starting in ${provider.delaySecondsRemaining}s",
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppColors.primaryLightDark(context),
+                    color: Colors.orange.shade700,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
+        ] else if (hasActiveBids) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient(context),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryLightDark(context).withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
             ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  "place_bid",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(width: 6),
                 Text(
-                  "NIS ${nextBidPrice.toStringAsFixed(2)}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.white,
+                  "Live bidding active • ${provider.bids.length} bids • ${provider.uniqueBiddersCount} bidders",
+                  style: TextStyle(
+                    color: Colors.green.shade700,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _buildBottomBar() {
-    final currentPrice = selectedPost.finalPrice ?? selectedPost.currentBid ?? selectedPost.startPrice;
-    final canBid = _auctionStatus == "ACTIVE" &&
-        _isCurrentPostActive &&
-        _isTimerActive &&
-        _isWebSocketConnected;
+  Widget _buildBottomBar(AuctionProvider provider) {
+    final canBid = _canUserBid(provider);
+    final currentPrice = provider.currentPrice;
+    final hasActiveBids = provider.bids.isNotEmpty;
 
-    print('🔍 Building bottom bar with currentPrice: $currentPrice, canBid: $canBid');
+    print('🔍 BuildBottomBar - Has bids: $hasActiveBids, Current price: $currentPrice, Can bid: $canBid');
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1577,19 +849,58 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "current_bid".tr(),
+                    provider.isInDelayPhase
+                        ? "Next Auction"
+                        : (hasActiveBids ? "Current Bid" : "Starting Price"),
                     style: TextStyle(
                       color: AppColors.textSecondary(context),
                       fontSize: 12,
                     ),
                   ),
-                  Text(
-                    "NIS ${currentPrice.toStringAsFixed(2)}",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: AppColors.textPrimary(context),
-                    ),
+                  Row(
+                    children: [
+                      if (provider.isInDelayPhase) ...[
+                        Text(
+                          "${provider.delaySecondsRemaining}s",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          "NIS ${currentPrice.toStringAsFixed(2)}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: hasActiveBids
+                                ? AppColors.primaryLightDark(context)
+                                : AppColors.textPrimary(context),
+                          ),
+                        ),
+                        if (hasActiveBids) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -1603,8 +914,17 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
                     builder: (context) => BidBottomSheet(
-                      post: selectedPost,
-                      onBidPlaced: _sendBid,
+                      post: provider.selectedPost.copyWith(
+                        // Ensure the bid sheet has the latest pricing info
+                        finalPrice: provider.selectedPost.finalPrice,
+                        currentBid: provider.selectedPost.currentBid,
+                        bids: provider.bids, // Pass the current bids list
+                      ),
+                      onBidPlaced: (bidAmount) {
+                        print('🔍 Placing bid: $bidAmount');
+                        provider.sendBid(bidAmount);
+                        _showBidSuccess('Bid of ${bidAmount.toStringAsFixed(2)} NIS sent!');
+                      },
                     ),
                   );
                 } : null,
@@ -1619,7 +939,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                   ),
                 ),
                 child: Text(
-                  _getBidButtonText(),
+                  _getBidButtonText(provider),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1633,85 +953,146 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     );
   }
 
-  String _getBidButtonText() {
-    switch (_auctionStatus) {
+  bool _canUserBid(AuctionProvider provider) {
+    return provider.auctionStatus == "ACTIVE" &&
+        provider.isCurrentPostActive &&
+        provider.isTimerActive &&
+        !provider.isInDelayPhase && // NEW: Can't bid during delay phase
+        !provider.isTransitioning; // NEW: Can't bid during transition
+  }
+
+  String _getBidButtonText(AuctionProvider provider) {
+    if (provider.isTransitioning) {
+      return "Loading Next Auction..."; // NEW
+    } else if (provider.isInDelayPhase) {
+      return "Preparing Next Auction..."; // NEW
+    }
+
+    switch (provider.auctionStatus) {
       case "ACTIVE":
-        return _isWebSocketConnected ? "place_bid".tr() : "connecting".tr();
+        return provider.isWebSocketConnected ? "Place Bid" : "Connecting...";
       case "WAITING":
-        return "waiting_for_turn".tr();
+        return "Waiting for Turn";
       case "COMPLETED":
-        return "auction_ended".tr();
+        return "Auction Ended";
+      case "DELAY": // NEW
+        return "Next Auction Starting...";
       case "AUCTION_COMPLETED":
-        return "auction_finished".tr();
+        return "Auction Finished";
       default:
-        return "waiting_for_auction".tr();
+        return "Waiting for Auction";
     }
   }
 
-  // Rest of the methods (tabs, etc.) remain largely the same...
-  // I'll include a few key ones:
+  void _showBidSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
-  Widget _buildBidsTab() {
-    final allBids = List<Bid>.from(_bids);
+  Widget _buildBidsTab(AuctionProvider provider) {
+    final allBids = List.from(provider.bids);
     allBids.sort((a, b) => b.time.compareTo(a.time));
+
+    print('🔍 BuildBidsTab - Bids count: ${allBids.length}');
+    print('🔍 Provider bids: ${provider.bids.map((b) => '${b.userName}: ${b.amount}').join(', ')}');
+    print('🔍 Post bids: ${provider.selectedPost.bids.map((b) => '${b.userName}: ${b.amount}').join(', ')}');
 
     if (allBids.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.gavel,
-              size: 64,
-              color: Colors.grey,
-            ),
+            Icon(Icons.gavel, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              "لا توجد مزايدات حتى الآن",
+              "No bids yet",
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
-            if (_auctionStatus == "ACTIVE")
-              Text(
-                "This item is currently active - be the first to bid!",
-                style: TextStyle(fontSize: 12, color: Colors.green),
+            const SizedBox(height: 8),
+            Text(
+              "Starting price: ${provider.selectedPost.startPrice.toStringAsFixed(2)} NIS",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            if (provider.auctionStatus == "ACTIVE")
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.flash_on, size: 16, color: Colors.green),
+                    SizedBox(width: 4),
+                    Text(
+                      "This item is active - be the first to bid!",
+                      style: TextStyle(fontSize: 12, color: Colors.green.shade700, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               )
-            else if (_auctionStatus == "WAITING")
-              Text(
-                "Waiting for this item's turn in the auction...",
-                style: TextStyle(fontSize: 12, color: Colors.orange),
-              ),
+            else if (provider.auctionStatus == "WAITING")
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: Colors.orange),
+                    SizedBox(width: 4),
+                    Text(
+                      "Waiting for this item's turn...",
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade700, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              )
+            else if (provider.isInDelayPhase)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.schedule, size: 16, color: Colors.orange),
+                      SizedBox(width: 4),
+                      Text(
+                        "Next auction starting in ${provider.delaySecondsRemaining}s...",
+                        style: TextStyle(fontSize: 12, color: Colors.orange.shade700, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: allBids.length,
-      itemBuilder: (context, index) {
-        final bid = allBids[index];
-        final isFirst = index == 0;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+    return Column(
+      children: [
+        // Bid summary header
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.cardBackground(context),
+            gradient: AppColors.primaryGradient(context),
             borderRadius: BorderRadius.circular(12),
-            border:
-            isFirst
-                ? Border.all(
-              color: AppColors.primaryLightDark(context),
-              width: 2,
-            )
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowLight(context),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Row(
             children: [
@@ -1719,64 +1100,194 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          bid.userName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: AppColors.textPrimary(context),
-                          ),
-                        ),
-                        if (isFirst) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLightDark(context),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              "highest_bid".tr(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      provider.isInDelayPhase ? "Auction Completed" : "Live Bidding",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
-                      _getTimeAgo(bid.time),
+                      "${allBids.length} bids • ${provider.uniqueBiddersCount} bidders",
                       style: TextStyle(
-                        color: AppColors.textSecondary(context),
+                        color: Colors.white.withOpacity(0.9),
                         fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
-              Text(
-                "NIS ${bid.amount.toStringAsFixed(2)}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color:
-                  isFirst
-                      ? AppColors.primaryLightDark(context)
-                      : AppColors.textPrimary(context),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "NIS ${provider.currentPrice.toStringAsFixed(2)}",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+
+        // Bids list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: allBids.length,
+            itemBuilder: (context, index) {
+              final bid = allBids[index];
+              final isFirst = index == 0;
+              final isRecent = DateTime.now().difference(bid.time).inMinutes < 1;
+
+              return AnimatedContainer(
+                duration: Duration(milliseconds: 300),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: isFirst
+                      ? Border.all(color: AppColors.primaryLightDark(context), width: 2)
+                      : isRecent
+                      ? Border.all(color: Colors.green.withOpacity(0.5), width: 1)
+                      : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: isFirst
+                          ? AppColors.primaryLightDark(context).withOpacity(0.3)
+                          : AppColors.shadowLight(context),
+                      blurRadius: isFirst ? 15 : 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Avatar placeholder
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isFirst
+                            ? AppColors.primaryLightDark(context)
+                            : AppColors.lightBackground(context),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        color: isFirst ? Colors.white : AppColors.textSecondary(context),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                bid.userName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppColors.textPrimary(context),
+                                ),
+                              ),
+                              if (isFirst) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryLightDark(context),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    "Highest",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (isRecent && !isFirst) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                _getTimeAgo(bid.time),
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (isRecent) ...[
+                                Text(
+                                  " • New",
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "NIS ${bid.amount.toStringAsFixed(2)}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isFirst
+                                ? AppColors.primaryLightDark(context)
+                                : AppColors.textPrimary(context),
+                          ),
+                        ),
+                        if (isFirst)
+                          Text(
+                            provider.isInDelayPhase ? "Winner" : "Leading",
+                            style: TextStyle(
+                              color: AppColors.primaryLightDark(context),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -1785,26 +1296,22 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     final difference = now.difference(time);
 
     if (difference.inDays > 0) {
-      return "ago_days".tr(namedArgs: {'count': difference.inDays.toString()});
+      return "${difference.inDays} days ago";
     } else if (difference.inHours > 0) {
-      return "ago_hours".tr(
-        namedArgs: {'count': difference.inHours.toString()},
-      );
+      return "${difference.inHours} hours ago";
     } else if (difference.inMinutes > 0) {
-      return "ago_minutes".tr(
-        namedArgs: {'count': difference.inMinutes.toString()},
-      );
+      return "${difference.inMinutes} minutes ago";
     } else {
-      return "ago_seconds".tr(
-        namedArgs: {'count': difference.inSeconds.toString()},
-      );
+      return "${difference.inSeconds} seconds ago";
     }
   }
 
-  // Additional methods for details and rules tabs would be similar to previous implementation
-  // but I'll include the essential ones for space
+  Widget _buildDetailsTab(AuctionProvider provider) {
+    final uniqueBidders = provider.bids.map((bid) => bid.userName).toSet().length;
+    final currentPriceInfo = provider.bids.isEmpty
+        ? "Starting at ${provider.selectedPost.startPrice.toStringAsFixed(2)} NIS"
+        : "Current: ${provider.currentPrice.toStringAsFixed(2)} NIS";
 
-  Widget _buildDetailsTab() {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1825,7 +1332,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "post_info".tr(),
+                "Post Information",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1835,61 +1342,99 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
               const SizedBox(height: 16),
               _buildInfoRow(
                 icon: Icons.category,
-                title: "category".tr(),
-                value: selectedPost.category,
+                title: "Category",
+                value: provider.selectedPost.category,
+              ),
+              Divider(color: AppColors.divider(context)),
+              _buildInfoRow(
+                icon: Icons.people,
+                title: "Unique Bidders",
+                value: "$uniqueBidders bidders",
+                isHighlighted: uniqueBidders > 0,
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
                 icon: Icons.gavel,
-                title: "bidders_count".tr(),
-                value: "bidders".tr(
-                  namedArgs: {
-                    'count': _bids.length.toString(),
-                  },
-                ),
+                title: "Total Bids",
+                value: "${provider.bids.length} bids",
+                isHighlighted: provider.bids.isNotEmpty,
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
                 icon: Icons.remove_red_eye,
-                title: "views".tr(),
-                value: "views".tr(
-                  namedArgs: {'count': selectedPost.viewCount.toString()},
-                ),
+                title: "Views",
+                value: "${provider.selectedPost.viewCount} views",
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
                 icon: Icons.price_change,
-                title: "starting_price".tr(),
-                value: "NIS ${selectedPost.startPrice.toStringAsFixed(2)}",
+                title: "Starting Price",
+                value: "NIS ${provider.selectedPost.startPrice.toStringAsFixed(2)}",
+              ),
+              Divider(color: AppColors.divider(context)),
+              _buildInfoRow(
+                icon: Icons.trending_up,
+                title: "Current Price",
+                value: currentPriceInfo,
+                isHighlighted: provider.bids.isNotEmpty,
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
                 icon: Icons.add_circle_outline,
-                title: "bid_step".tr(),
-                value: "NIS ${selectedPost.bidStep.toStringAsFixed(2)}",
+                title: "Bid Step",
+                value: "NIS ${provider.selectedPost.bidStep.toStringAsFixed(2)}",
               ),
               Divider(color: AppColors.divider(context)),
               _buildInfoRow(
                 icon: Icons.access_time,
-                title: "auction_status".tr(),
-                value: _getStatusLabel(),
+                title: "Status",
+                value: _getStatusLabel(provider.auctionStatus),
+                isHighlighted: provider.auctionStatus == "ACTIVE",
               ),
-              if (_isTimerActive) ...[
+              if (provider.isTimerActive) ...[
                 Divider(color: AppColors.divider(context)),
                 _buildInfoRow(
                   icon: Icons.timer,
-                  title: "remaining_time".tr(),
-                  value: "${_timeLeft.inSeconds} seconds",
+                  title: "Time Remaining",
+                  value: "${provider.timeLeft.inSeconds} seconds",
+                  isHighlighted: true,
                 ),
               ],
-              if (selectedPost.sellerId != null) ...[
+              if (provider.isInDelayPhase) ...[
                 Divider(color: AppColors.divider(context)),
                 _buildInfoRow(
-                  icon: Icons.person,
-                  title: "seller".tr(),
-                  value: selectedPost.sellerName ?? "غير محدد",
+                  icon: Icons.schedule,
+                  title: "Next Auction",
+                  value: "Starting in ${provider.delaySecondsRemaining} seconds",
+                  isHighlighted: true,
                 ),
               ],
+              if (provider.isWebSocketConnected) ...[
+                Divider(color: AppColors.divider(context)),
+                _buildInfoRow(
+                  icon: Icons.wifi,
+                  title: "Connection",
+                  value: "Live updates active",
+                  isHighlighted: true,
+                ),
+              ],
+              const SizedBox(height: 16),
+              Text(
+                "Description",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                provider.selectedPost.description,
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  height: 1.5,
+                ),
+              ),
             ],
           ),
         ),
@@ -1901,23 +1446,37 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     required IconData icon,
     required String title,
     required String value,
+    bool isHighlighted = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary(context)),
+          Icon(
+              icon,
+              size: 20,
+              color: isHighlighted
+                  ? AppColors.primaryLightDark(context)
+                  : AppColors.textSecondary(context)
+          ),
           const SizedBox(width: 12),
           Text(
             title,
-            style: TextStyle(color: AppColors.textSecondary(context)),
+            style: TextStyle(
+              color: isHighlighted
+                  ? AppColors.primaryLightDark(context)
+                  : AppColors.textSecondary(context),
+              fontWeight: isHighlighted ? FontWeight.w500 : FontWeight.normal,
+            ),
           ),
           const Spacer(),
           Text(
             value,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary(context),
+              color: isHighlighted
+                  ? AppColors.primaryLightDark(context)
+                  : AppColors.textPrimary(context),
             ),
           ),
         ],
@@ -1925,7 +1484,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
     );
   }
 
-  Widget _buildRulesTab() {
+  Widget _buildRulesTab(AuctionProvider provider) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1946,7 +1505,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "sequential_auction_rules".tr(),
+                "Auction Rules",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1956,28 +1515,33 @@ class _AuctionDetailPageState extends State<AuctionDetailPage>
               const SizedBox(height: 16),
               _buildRuleItem(
                 number: 1,
-                title: "rule_sequential_order".tr(),
-                description: "يتم عرض المنتجات في المزاد واحداً تلو الآخر حسب الترتيب المحدد مسبقاً.",
+                title: "Sequential Order",
+                description: "Items are auctioned one by one in a predetermined order.",
               ),
               _buildRuleItem(
                 number: 2,
-                title: "rule_timer_restart".tr(),
-                description: "عند وضع مزايدة جديدة، يتم إعادة تشغيل المؤقت إلى 30 ثانية كاملة.",
+                title: "Timer Reset",
+                description: "When a new bid is placed, the timer resets to 30 seconds.",
               ),
               _buildRuleItem(
                 number: 3,
-                title: "rule_auto_progression".tr(),
-                description: "عند انتهاء وقت المنتج الحالي، يتم الانتقال تلقائياً للمنتج التالي في القائمة.",
+                title: "Auction Delay", // NEW
+                description: "After each auction ends, there's a 10-second delay before the next item starts.",
               ),
               _buildRuleItem(
                 number: 4,
-                title: "rule_min_bid".tr(),
-                description: "الحد الأدنى للمزايدة هو ${selectedPost.bidStep.toStringAsFixed(2)} شيكل فوق آخر مزايدة.",
+                title: "Auto Progression",
+                description: "When time expires, the auction automatically moves to the next item after the delay.",
               ),
               _buildRuleItem(
                 number: 5,
-                title: "rule_commitment".tr(),
-                description: "المزايد الفائز ملزم بإتمام عملية الشراء خلال 48 ساعة من انتهاء المزاد.",
+                title: "Minimum Bid",
+                description: "Minimum bid increment is ${provider.selectedPost.bidStep.toStringAsFixed(2)} NIS above the current highest bid.",
+              ),
+              _buildRuleItem(
+                number: 6,
+                title: "Winner Commitment",
+                description: "The winning bidder must complete the purchase within 48 hours.",
               ),
             ],
           ),
@@ -2055,11 +1619,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(
-      BuildContext context,
-      double shrinkOffset,
-      bool overlapsContent,
-      ) {
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(color: AppColors.cardBackground(context), child: _tabBar);
   }
 

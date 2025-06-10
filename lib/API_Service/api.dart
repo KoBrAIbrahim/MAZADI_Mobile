@@ -16,7 +16,7 @@ class ApiService {
   static String get baseUrl {
     if (Platform.isAndroid) {
       // Android emulator
-      return "http://192.168.1.20:8080";
+      return "http://192.168.1.10:8080";
     } else if (Platform.isIOS) {
       // iOS simulator can use localhost, but physical device needs IP
       return "http://localhost:8080";
@@ -719,7 +719,6 @@ class ApiService {
 
   fetchAuctions() {}
 
-  fetchPosts() {}
 
   fetchBids() {}
 
@@ -1064,19 +1063,58 @@ class ApiService {
   /// Place bid via HTTP (fallback when WebSocket is not available)
   static Future<bool> placeBid(int postId, double amount) async {
     try {
+      print('🔍 Placing bid via HTTP: Post $postId, Amount: $amount');
+
       final authBox = await Hive.openBox('authBox');
       final token = authBox.get('access_token');
+
+      if (token == null) {
+        print('❌ No authentication token found');
+        return false;
+      }
+
+      // Use the correct URL format - amount should be the total bid amount
+      final url = '${ApiService.baseUrl}/posts/$postId/increase-price?amount=$amount';
+      print('📡 Making request to: $url');
+
       final response = await http.put(
-        Uri.parse(AppConfig.placeBidUrl(postId, amount)),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
-           'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
         },
       );
 
-      return response.statusCode == 200;
+      print('📡 Response status: ${response.statusCode}');
+      print('📡 Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ Bid placed successfully via HTTP');
+        return true;
+      } else if (response.statusCode == 400) {
+        // Handle specific error cases
+        final errorBody = response.body;
+        if (errorBody.contains('below minimum required')) {
+          print('❌ Bid below minimum required amount');
+        } else if (errorBody.contains('not currently active')) {
+          print('❌ Item not currently active for bidding');
+        } else {
+          print('❌ Bad request: $errorBody');
+        }
+        return false;
+      } else if (response.statusCode == 401) {
+        print('❌ Authentication failed');
+        return false;
+      } else if (response.statusCode == 404) {
+        print('❌ Post not found');
+        return false;
+      } else {
+        print('❌ HTTP bid failed: ${response.statusCode} - ${response.body}');
+        return false;
+      }
     } catch (e) {
-      print('Error placing bid: $e');
+      print('❌ Error placing bid via HTTP: $e');
       return false;
     }
   }
@@ -1085,12 +1123,14 @@ class ApiService {
     try {
       print('🔍 Getting current active post for auction: $auctionId');
 
-      // Get authentication token
       final authBox = await Hive.openBox('authBox');
       final token = authBox.get('access_token');
 
+      final url = '${ApiService.baseUrl}/posts/auction/$auctionId/current-active';
+      print('📡 Making request to: $url');
+
       final response = await http.get(
-        Uri.parse(AppConfig.getCurrentActivePostUrl(auctionId)),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -1099,44 +1139,43 @@ class ApiService {
       );
 
       print('📡 getCurrentActivePost response: ${response.statusCode}');
-      print('📡 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print('✅ Successfully got current active post data');
+        print('📊 Data: $data');
         return data;
       } else if (response.statusCode == 401) {
-        print('🔐 Authentication failed, attempting token refresh...');
+        print('🔐 Authentication failed for getCurrentActivePost');
 
-        // Try to refresh token
-        final apiService = ApiService();
-        final refreshed = await apiService.refreshAccessToken();
+        // Try to refresh token if available
+        if (token != null) {
+          final apiService = ApiService();
+          final refreshed = await apiService.refreshAccessToken();
 
-        if (refreshed) {
-          // Retry with new token
-          final newToken = authBox.get('access_token');
-          final retryResponse = await http.get(
-            Uri.parse(AppConfig.getCurrentActivePostUrl(auctionId)),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $newToken',
-            },
-          );
+          if (refreshed) {
+            // Retry with new token
+            final newToken = authBox.get('access_token');
+            final retryResponse = await http.get(
+              Uri.parse(url),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Bearer $newToken',
+              },
+            );
 
-          if (retryResponse.statusCode == 200) {
-            return json.decode(retryResponse.body);
+            if (retryResponse.statusCode == 200) {
+              return json.decode(retryResponse.body);
+            }
           }
         }
 
         print('❌ Authentication failed even after token refresh');
         return null;
-      } else if (response.statusCode == 403) {
-        print('⚠️ Access forbidden - using fallback approach');
-        return null; // Let the calling code handle fallback
       } else {
         print('❌ Failed to get current active post: ${response.statusCode}');
-        print('❌ Error response: ${response.body}');
+        print('❌ Response body: ${response.body}');
         return null;
       }
     } catch (e) {
@@ -1144,7 +1183,22 @@ class ApiService {
       return null;
     }
   }
+  static bool validateBidAmount(double bidAmount, double currentPrice, double bidStep) {
+    final minimumBid = currentPrice + bidStep;
 
+    if (bidAmount < minimumBid) {
+      print('❌ Bid validation failed: $bidAmount < $minimumBid (minimum required)');
+      return false;
+    }
+
+    if (bidAmount <= 0) {
+      print('❌ Bid validation failed: Amount must be greater than 0');
+      return false;
+    }
+
+    print('✅ Bid validation passed: $bidAmount >= $minimumBid');
+    return true;
+  }
   static Future<Map<String, dynamic>?> startNextPost(int auctionId) async {
     try {
       final authBox = await Hive.openBox('authBox');
